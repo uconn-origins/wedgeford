@@ -1,6 +1,6 @@
 ## Models
 
-[back to main](../readme.md)
+[back to main](../README.md)
 
 ### Disk + Envelope Model in Three Dimensions
 Basic code to create a setup for a three dimensional model (in spherical coordinates) of a disk and envelope.
