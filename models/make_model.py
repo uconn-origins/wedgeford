@@ -6,7 +6,7 @@ from scipy.interpolate import griddata
 from constants import *
 
 class model:
-    def __init__(self,stellar_params, disk_params, envelope_params,grid_params, dust_params, outdir = '/m1_test/'):
+    def __init__(self,stellar_params, disk_params, envelope_params,grid_params, dust_params, RT_params, outdir = '/m1_test/'):
         self.star = stellar_params
         self.disk = disk_params
         self.env = envelope_params
@@ -51,12 +51,28 @@ class model:
     def make_grid(self):
         return np.meshgrid(self.r,self.theta,self.phi)
     
-    def make_rz(self):
+    def make_rz(self): #non-uniform spherical grid mapped onto cylindrical coordinates
         R,THETA,PHI = self.make_grid()
         R_CYL = np.clip(R*np.sin(THETA),a_min=1e-5,a_max=None)
         Z_CYL = R*np.cos(THETA)
         return R_CYL, Z_CYL
     
+    def make_rz_uniform(self): #make a cylindrical grid for the chemical models
+        r_uni = np.logspace(np.log10(self.grid['min'][0]), np.log10(self.grid['max'][0]), self.grid['N'][0])
+        N_th = self.grid['N'][1]
+        th_cav_wide = np.radians(self.env['theta_min'])
+        r_wall,th_wall,rho_wall = self.rho_stream(th_cav_wide)
+        th_cav = np.amin(th_wall[r_wall <= np.amax(r_uni)]) # getting edge of the cavity lower down
+        th_polar = np.linspace(1e-5,th_cav,2) #thetas in the cavity
+        th_eq = np.linspace(th_cav,pi/2.,50-2 ) #thetas not in the cavity
+        th_uni = np.unique(np.append(th_polar,th_eq)) # all the thetas together
+        print(th_uni)
+        R_CYL,TH = np.meshgrid(r_uni,th_uni)
+        Z_UNI = R_CYL/np.tan(TH)
+        Z_UNI[TH == 0] = np.amax(r_uni)
+        Z_UNI[TH == pi/2.] = 0.0
+        return R_CYL, Z_UNI
+        
     def sig_profile(self,R,fluid=0): #fluid = 0 for gas, 1 for small dust (follows gas), 2 for large dust (settled)
         i = max(fluid,1)-1
         Rd = self.disk['Rdisk'][i]

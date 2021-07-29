@@ -23,7 +23,7 @@ ls  = 3.8525e33      # Solar luminosity        [erg/s]
 rs  = 6.96e10        # Solar radius            [cm]
 
 
-RT_params = {'zetacr': 1.3e-17}
+
 
 
 class RT(self,physical_model, RT_params):

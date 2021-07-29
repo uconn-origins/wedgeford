@@ -1,6 +1,6 @@
 
 */*checkpoint*
 */.ipynb_checkpoints/
+*/*/.ipynb_checkpoints/
+**/*checkpoint*
 *.pyc
-models/example_gmaur/.ipynb_checkpoints/r3d_dust_analysis-checkpoint.png
-models/example_gmaur/.ipynb_checkpoints/GM_Aur_combined_sigma-checkpoint.txt
