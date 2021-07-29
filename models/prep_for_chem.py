@@ -1,11 +1,13 @@
 #Converts radmc3d model input/output into format needed for UV/X-ray radiative transfer and chemistry
 
 
-dir = '/home/kschwarz/radmc-3d/version_0.41/examples/gmaur/'
+dir = './example_gmaur/'
 outdir = '../highenergy_RT/'
 import sys
 sys.path.append(dir)
 import final_setup as p
+from constants import *
+import make_model as mod
 import numpy as np
 from mpl_toolkits.mplot3d import axes3d
 from matplotlib import pyplot as plt
