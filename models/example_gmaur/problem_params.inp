@@ -1,0 +1,91 @@
+###########################################################################################################################
+# RADMC-3D PARAMETER SETUP
+# Created by the python module of RADMC-3D
+###########################################################################################################################
+# -------------------------------------------------------------------------------------------------------------------------
+# Block: Radiation sources
+# -------------------------------------------------------------------------------------------------------------------------
+incl_cont_stellarsrc      = False  # # Switches on (True) or off (False) continuous stellar sources )
+incl_disc_stellarsrc      = True  # # Switches on (True) or off (False) discrete stellar sources)
+mstar                     = [1.1*ms]  # # Mass of the star(s)
+pstar                     = [0.0, 0.0, 0.0]  # # Position of the star(s) (cartesian coordinates)
+rstar                     = [1.9*rs]  # # Radius of the star(s)
+staremis_type             = ["kurucz"]  # # Stellar emission type ("blackbody", "kurucz", "nextgen")
+tstar                     = [4350.0]  # # Effective temperature of the star(s) [K]
+# -------------------------------------------------------------------------------------------------------------------------
+# Block: Grid parameters
+# -------------------------------------------------------------------------------------------------------------------------
+crd_sys                   = 'sph'  # Coordinate system used (car/cyl)
+grid_style                = 0  # 0 - Regular grid, 1 - Octree AMR, 10 - Layered/nested grid (not yet supported)
+levelMaxLimit             = 5  # Highest refinement level in octree AMR
+nw                        = [19, 50, 30]  # Number of points in the wavelength grid
+nx                        = [300]  # Number of grid points in the first dimension (to switch off this dimension set it to 0)
+ny                        = [40,40]  # Number of grid points in the second dimension (to switch off this dimension set it to 0)
+nz                        = 30  # Number of grid points in the third dimension (to switch off this dimension set it to 0)
+wbound                    = [0.1, 7.0, 25., 1e4]  # Boundraries for the wavelength grid
+xbound                    = [1.0*au,650.0*au]  # Boundaries for the x grid
+xres_nlev                 = 3  # Number of refinement levels (spherical coordinates only
+xres_nspan                = 3  # Number of the original grid cells to refine (spherical coordinates only)
+xres_nstep                = 3  # Number of grid cells to create in a refinement level (spherical coordinates only)
+ybound                    = [pi/3., pi/2., 2.*pi/3.]  # Boundaries for the y grid
+zbound                    = [0., 2.0*pi]  # Boundraries for the z grid
+# -------------------------------------------------------------------------------------------------------------------------
+# Block: Dust opacity
+# -------------------------------------------------------------------------------------------------------------------------
+dustkappa_ext             = ["lg_maps_std","sm_maps_std"]  # 
+gdens                     = [1.68,2.4]  # Bulk density of the materials in g/cm^3
+gsdist_powex              = -3.5  # Grain size distribution power exponent
+gsmax                     = 10.0  # Maximum grain size
+gsmin                     = 0.1  # Minimum grain size
+lnk_fname                 = ['/disk2/juhasz/Data/JPDOC/astrosil/astrosil_WD2001_new.lnk', '/disk2/juhasz/Data/JPDOC/carbon/A/cel600.lnk']  # 
+mixabun                   = [0.75, 0.25]  # Mass fractions of the dust componetns to be mixed
+ngs                       = 3  # Number of grain sizes
+# -------------------------------------------------------------------------------------------------------------------------
+# Block: Gas line RT
+# -------------------------------------------------------------------------------------------------------------------------
+gasspec_colpart_abun      = [1e0]  # Abundance of the molecule
+gasspec_colpart_name      = ['h2']  # Name of the gas species - the extension of the molecule_EXT.inp file
+gasspec_mol_abun          = [1e-4,1e-4,1e-4]  # Abundance of the molecule
+gasspec_mol_dbase_type    = ['leiden','leiden','leiden']  # leiden or linelist
+gasspec_mol_name          = ['c18o','13co','co']  # Name of the gas species - the extension of the molecule_EXT.inp file
+gasspec_vturb             = 2.83e4  # Microturbulence
+# -------------------------------------------------------------------------------------------------------------------------
+# Block: Code parameters
+# -------------------------------------------------------------------------------------------------------------------------
+istar_sphere              = 0  # 1 - take into account the finite size of the star, 0 - take the star to be point-like
+itempdecoup               = 1  # Enable for different dust components to have different temperatures
+lines_mode                = -1  # Line raytracing mode
+modified_random_walk      = 0  # Switched on (1) and off (0) modified random walk
+nphot                     = long(4e6)  # Nr of photons for the thermal Monte Carlo
+nphot_scat                = long(3e5)  # Nr of photons for the scattering Monte Carlo (for images)
+nphot_spec                = long(1e5)  # Nr of photons for the scattering Monte Carlo (for spectra)
+rto_style                 = 1  # Format of outpuf files (1-ascii, 2-unformatted f77, 3-binary
+scattering_mode_max       = 2  # 0 - no scattering, 1 - isotropic scattering, 2 - anizotropic scattering
+tgas_eq_tdust             = 0  # Take the dust temperature to identical to the gas temperature
+writeimage_unformatted    = 1  # Switched on (1) and off (0) use binary image output
+# -------------------------------------------------------------------------------------------------------------------------
+# Block: Model model_MAPS_template
+# -------------------------------------------------------------------------------------------------------------------------
+bgdens                    = 1e-35  # Background density (g/cm^3)
+co_dissociation_column    = 1e21  # CO photodissociation limit
+co_freeze_temp            = 20.  # CO freezeout temperature
+delta_r                   = [0.1*au,0.1*au]  # Characteristic radial length for the puffed-up rim
+gamma                     = [1.0,1.0]  # Power exponent of the surface density distribution as a function of radius
+gas_numberdens_file       = "rac2d_input/numberdens_H.binp"  # gas number density file
+gas_surface_density_file  = ""  # gas surface density file
+h_wall                    = [0.*au,0.0*au]  # puff-up wall
+hr_ref                    = [0.015,0.075]  # Ratio of the pressure scale height over radius at hrpivot
+log_delta                 = [0.0,0.0]  # Density reduction factor in the gap
+mdisk                     = [0.0018,4e-05]  # Mass of the dust disk in Msun (either sigma_c or mdisk should be set to zero or commented out)
+modify_tgas_file          = ""  # modify tgas based on tdust, input file
+mole_abundance_file       = ["rac2d_input/X_CO.binp","rac2d_input/X_CO.binp","rac2d_input/X_CO.binp"]  # abundace profile
+nds                       = 2  # number of dust species
+plh                       = [0.35,0.35]  # Flaring index
+r_c                       = [176.0*au, 176.0*au]  # characteristic radius
+r_dust_cav                = [.1*au,0.1*au]  # Inner radius of the gap
+r_ref                     = 100.0*au  # Reference radius at which Hp/R is taken
+rac2d_mol_abun_scale      = [1./570,1./69,1.]  # 
+rin                       = 0.1*au  # Inner radius of the disk
+sigma_c                   = [0.,0.]  # Surface density at r_c
+sigma_dust_file           = ["GM_Aur_combined_sigma.txt","GM_Aur_sm_designed_1.txt"]  # 
+tgas_file                 = "rac2d_input/Tgas.binp"  # tgas input file
