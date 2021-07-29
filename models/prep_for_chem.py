@@ -22,6 +22,16 @@ ts  = 5.78e3         # Solar temperature       [K]
 ls  = 3.8525e33      # Solar luminosity        [erg/s]
 rs  = 6.96e10        # Solar radius            [cm]
 
+
+RT_params = {'zetacr': 1.3e-17}
+
+
+class RT(self,physical_model, RT_params):
+    self.model = physical_model
+    self.RT = RT_params
+    
+
+
 def main():
 	dust2gas = 0.01
 	rho_si = 3.0 #cancels out
@@ -29,8 +39,8 @@ def main():
 	amax_ism = 1.0
 	ndust = 3
 	zetacr = 1.3e-17
-	amin = [0.005e-6,0.005e-6,0.005e-6]
-	amax = [1e-6,1e-6,1e-3]
+	amin = [0.005e-6,0.005e-6,0.005e-6]#meters
+	amax = [1e-6,1e-6,1e-3]#meters
 
 	infile = open(dir+'amr_grid.inp',"r")
 	n = 6

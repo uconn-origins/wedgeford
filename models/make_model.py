@@ -6,11 +6,12 @@ from scipy.interpolate import griddata
 from constants import *
 
 class model:
-    def __init__(self,stellar_params, disk_params, envelope_params,grid_params, outdir = '/m1_test/'):
+    def __init__(self,stellar_params, disk_params, envelope_params,grid_params, dust_params, outdir = '/m1_test/'):
         self.star = stellar_params
         self.disk = disk_params
         self.env = envelope_params
         self.grid = grid_params
+        self.dust = dust_params
         self.outdir = outdir
         self.coords = [0,0,0]
         for dim in [0,1,2]:
