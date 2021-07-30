@@ -57,21 +57,33 @@ class model:
         Z_CYL = R*np.cos(THETA)
         return R_CYL, Z_CYL
     
+    
+    def get_Tdust(self):
+        return 0
+    
     def make_rz_uniform(self): #make a cylindrical grid for the chemical models
         r_uni = np.logspace(np.log10(self.grid['min'][0]), np.log10(self.grid['max'][0]), self.grid['N'][0])
         N_th = self.grid['N'][1]
         th_cav_wide = np.radians(self.env['theta_min'])
         r_wall,th_wall,rho_wall = self.rho_stream(th_cav_wide)
         th_cav = np.amin(th_wall[r_wall <= np.amax(r_uni)]) # getting edge of the cavity lower down
-        th_polar = np.linspace(1e-5,th_cav,2) #thetas in the cavity
+        th_polar = np.linspace(th_cav/2.,th_cav,2) #thetas in the cavity
         th_eq = np.linspace(th_cav,pi/2.,50-2 ) #thetas not in the cavity
         th_uni = np.unique(np.append(th_polar,th_eq)) # all the thetas together
-        print(th_uni)
         R_CYL,TH = np.meshgrid(r_uni,th_uni)
-        Z_UNI = R_CYL/np.tan(TH)
-        Z_UNI[TH == 0] = np.amax(r_uni)
-        Z_UNI[TH == pi/2.] = 0.0
-        return R_CYL, Z_UNI
+        Z_UNI = (R_CYL/np.sin(TH))*np.cos(TH)
+        z_norm = (np.amax(r_uni)/np.amax(Z_UNI,axis=0))*np.ones_like(Z_UNI)
+        return R_CYL, Z_UNI*z_norm
+    
+    
+    def make_quadrant(self,fluid=0):
+        rho_3d = self.rho_embedded(fluid=fluid)
+        rho_2d = rho_3d[:,:,0] # phi=0 plane
+        r_cyl,z_cyl = self.make_rz()
+        r_new, z_new = self.make_rz_uniform()
+        rho_2d_interp = griddata((r_cyl[:,:,0].flatten(),z_cyl[:,:,0].flatten()), rho_2d.ravel(), (r_new[1:,:],z_new[1:,:]),fill_value=disk.env['rho_amb'])
+        return rho_2d_interp
+
         
     def sig_profile(self,R,fluid=0): #fluid = 0 for gas, 1 for small dust (follows gas), 2 for large dust (settled)
         i = max(fluid,1)-1
@@ -182,7 +194,7 @@ class model:
         th_edges = self.coords[1]
         phi_edges = self.coords[2]
         header = str(iformat) + '\n' + str(grid_style) + '\n' + str(coordsystem) + '\n' + str(gridinfo) + '\n' + str(incl_x) + '\t' + str(incl_y) + '\t' + str(incl_z) + '\n' + str(nx) + '\t' + str(ny) + '\t' + str(nz) + '\n'
-        with open(outdir+"amr_grid.inp","w") as f:
+        with open(self.outdir+"amr_grid.inp","w") as f:
             f.write(header)
             for x,fmt  in zip([r_edges,th_edges,phi_edges],['%13.6e','%17.10e','%13.6e']):
                 x.tofile(f, sep= '\t', format=fmt)
@@ -194,7 +206,7 @@ class model:
         small_dust = self.rho_embedded(fluid=1)
         large_dust = self.rho_embedded(fluid=2)
         Nr = np.prod(np.array(self.grid['N']))
-        with open(outdir+'dust_density.inp','w+') as f:
+        with open(self.outdir+'dust_density.inp','w+') as f:
             f.write('1\n')                   # Format number
             f.write('%d\n'%(Nr))           # Number of cells
             f.write('2\n')                   # Number of dust species
@@ -203,3 +215,47 @@ class model:
                 data.tofile(f, sep='\n', format="%13.6e")
                 f.write('\n')
         f.close()
+        
+        
+    def write_wavelength(self):
+        lam1     = 0.1e0
+        lam2     = 7.0e0
+        lam3     = 25.e0
+        lam4     = 1.0e4
+        n12      = 20
+        n23      = 100
+        n34      = 30
+        lam12    = np.logspace(np.log10(lam1),np.log10(lam2),n12,endpoint=False)
+        lam23    = np.logspace(np.log10(lam2),np.log10(lam3),n23,endpoint=False)
+        lam34    = np.logspace(np.log10(lam3),np.log10(lam4),n34,endpoint=True)
+        lam      = np.concatenate([lam12,lam23,lam34])
+        nlam     = lam.size
+        with open(self.outdir + 'wavelength_micron.inp','w+') as f:
+            f.write('%d\n'%(nlam))
+            for value in lam:
+                f.write('%13.6e\n'%(value))
+        
+        
+    def write_opacities(self): # note to self: figure out the number of dust species inputs and parameters
+        with open(self.outdir+ 'dustopac.inp','w+') as f:
+            f.write('2               Format number of this file\n')
+            f.write('3               Nr of dust species\n')
+            f.write('============================================================================\n')
+            f.write('1               Way in which this dust species is read\n')
+            f.write('0               0=Thermal grain\n')
+            f.write('lg_maps_std        Extension of name of dustkappa_***.inp file\n')
+            f.write('----------------------------------------------------------------------------\n')
+            f.write('1               Way in which this dust species is read\n')
+            f.write('0               0=Thermal grain\n')
+            f.write('sm_maps_std        Extension of name of dustkappa_***.inp file\n')
+            f.write('----------------------------------------------------------------------------\n')
+            f.write('1               Way in which this dust species is read\n')
+            f.write('0               0=Thermal grain\n')
+            f.write('smdsharp        Extension of name of dustkappa_***.inp file\n')
+            f.write('----------------------------------------------------------------------------\n')
+
+    def write_main(self,nphot= 100000):        
+        with open(self.outdir+'radmc3d.inp','w+') as f:
+            f.write('nphot = %d\n'%(nphot))
+            f.write('scattering_mode_max = 1\n')
+            f.write('iranfreqmode = 1\n')

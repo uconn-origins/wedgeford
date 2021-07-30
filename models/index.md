@@ -7,6 +7,7 @@ Basic code to create a setup for a three dimensional model (in spherical coordin
 
 ### Files
 [make_model.ipynb](./make_model.ipynb): basic notebook to set up a problem in radmc3d.
+[make_model.py](./make_model.py): model class to store the relevant arrays of information
 
 [radmc3d-2-mich.py](./radmc3d-2-mich.py): code to take radmc3d outputs and reformat for future calculations.
 
