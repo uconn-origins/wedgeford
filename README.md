@@ -38,7 +38,7 @@ Code repository for the Warm Emission Due to Gas Envelopes Falling Onto Rotating
 
 
 ## Code components
-###[Tutorial notebook](./make_model.ipynb): basic notebook to set up a problem in radmc3d.
+### [Tutorial notebook](./make_model.ipynb): basic notebook to set up a problem in radmc3d.
 
 + [models](./models/index.md)
   + Creation of model object
