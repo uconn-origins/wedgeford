@@ -7,14 +7,51 @@ Basic code to create a setup for a three dimensional model (in spherical coordin
 
 ### Files
 [make_model.ipynb](./make_model.ipynb): basic notebook to set up a problem in radmc3d.
+
 [make_model.py](./make_model.py): model class to store the relevant arrays of information
 
 [radmc3d-2-mich.py](./radmc3d-2-mich.py): code to take radmc3d outputs and reformat for future calculations.
 
 
+### Basic Code Workflow 
+
++ Create a physical model of a disk and infalling envelope for some number of dust species:
+    + Grid
+        + spherical coordinate grid in `r,theta,phi`
+            + `model.make_grid()` (3d version)
+            + `model.r, model.theta, model.phi` (1d versions)
+            + output file: `"amr_grid.inp"`  
+    + Gas component
+        + Ulrich-envelope + gas disk with thermal disk scale height set by irradiation
+        + output: array of 3d volume densities 
+            + `model.rho_embedded(fluid=0)`  
+    + Dust
+        + Several dust species, with sizes and opacities generated from library
+        + output: array of 3d volume densities
+            + `model.rho_embedded(fluid=1,2...etc)`    
++ Run `radmc3d mctherm` on model outputs
+    + output file: `"dust_temperature.dat"` 
+    + output: 3-d dust temperature on the original spherical grid 
++ Slice a quadrant in r-z and interpolate (densities and temperatures) onto a cylindrical grid in r and z
+    + `model.make_rz_uniform()`
+    + `model.make_quadrant(,fluid=...)`
+    + output file: `gas..out`
++ Compute cosmic ray attentuation based on column density at each point in the r,z grid
+    + `model.zeta()`
++  Run UV and X-ray radiative transfer
+    + input: `gas..out` 
+    + output: UV and X-ray fluxes at each point in the r,z grid
+    + output files: `uv..dat` and `xray.dat`
++ Generate input files for chemical models  
+    + chemistry inputs: `uv..dat`, `xray..dat`, `1_env..inp` 
+    + SCRIPT makes `1_env..inp`
++ Run chemical models  
+
+
+
 ### Parameters:
 
-### stellar_params 
+#### stellar_params 
 Assumes a central star at [0,0,0] of the coordinate system
 
 | param | description                   |  unit   | type  |
@@ -23,7 +60,7 @@ Assumes a central star at [0,0,0] of the coordinate system
 |     Rs| radius of central star        |  Rsun   | float |
 |     Ts| effective temp of central star|  Kelvin | float |
 
-### disk params
+#### disk params
 Assumes disk has three components. 3D distribution created by solving HSEQ for a surface density profile:
 
 `\Sigma \propto (R/R0)^p exp(-R/R_{disk})`, where the normalization is computed from the total mass given
@@ -51,7 +88,7 @@ Assumes disk has three components. 3D distribution created by solving HSEQ for a
 |   Rdisk| disk critical radius         |  AU    | ^, float                      |
 
 
-### envelope params
+#### envelope params
 
 Ulrich (1976) envelope of gas and (small) dust. Small dust is assumed to follow the gas exactly offset by dust-to-gas mass ratio (d2g) 
 
@@ -70,7 +107,7 @@ Option for including a cavity at some opening angle (theta_min), with the maximu
 
 
 
-### grid params
+#### grid params
 
 Grid on which radmc3d will do the calculation, grid is created to be optimized for radmc3d.
 
