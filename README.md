@@ -33,7 +33,7 @@ Code repository for the Warm Emission Due to Gas Envelopes Falling Onto Rotating
     + output files: `uv..dat` and `xray.dat`
 + Generate input files for chemical models  
     + chemistry inputs: `uv..dat`, `xray..dat`, `1_env..inp` 
-    + SCRIPT makes `1_env..inp`
+    + `taurus_2_chem.py` makes `1_env..inp`
 + Run chemical models  
 
 
