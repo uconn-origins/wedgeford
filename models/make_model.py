@@ -3,7 +3,7 @@ import radmc3dPy as rpy
 import numpy as np
 import os
 from scipy.interpolate import griddata
-from constants import *
+from models.constants import *
 
 class model:
     def __init__(self,stellar_params, disk_params, envelope_params,grid_params, dust_params, RT_params, outdir = '/m1_test/'):
@@ -72,7 +72,7 @@ class model:
         th_uni = np.unique(np.append(th_polar,th_eq)) # all the thetas together
         R_CYL,TH = np.meshgrid(r_uni,th_uni)
         Z_UNI = (R_CYL/np.sin(TH))*np.cos(TH)
-        z_norm = (np.amax(r_uni)/np.amax(Z_UNI,axis=0))*np.ones_like(Z_UNI)
+        z_norm = (2.*np.amax(r_uni)/np.amax(Z_UNI,axis=0))*np.ones_like(Z_UNI)
         return R_CYL, Z_UNI*z_norm
     
     
@@ -81,7 +81,7 @@ class model:
         rho_2d = rho_3d[:,:,0] # phi=0 plane
         r_cyl,z_cyl = self.make_rz()
         r_new, z_new = self.make_rz_uniform()
-        rho_2d_interp = griddata((r_cyl[:,:,0].flatten(),z_cyl[:,:,0].flatten()), rho_2d.ravel(), (r_new[1:,:],z_new[1:,:]),fill_value=disk.env['rho_amb'])
+        rho_2d_interp = griddata((r_cyl[:,:,0].flatten(),z_cyl[:,:,0].flatten()), rho_2d.ravel(), (r_new[1:,:],z_new[1:,:]),fill_value=self.env['rho_amb'])
         return rho_2d_interp
 
         
