@@ -12,8 +12,12 @@ class model:
         self.env = envelope_params
         self.grid = grid_params
         self.dust = dust_params
-        self.outdir = outdir
+        self.outdir = os.getcwd()+outdir
         self.coords = [0,0,0]
+        try:
+            os.mkdir(self.outdir)
+        except:
+            print('directory exists - will overwrite current model if you write to it!')
         for dim in [0,1,2]:
             N,gmin,gmax,spacing = [self.grid['N'][dim], self.grid['min'][dim], self.grid['max'][dim], self.grid['spacing'][dim]]
             if spacing == 'log':
@@ -40,13 +44,15 @@ class model:
     def H(self,R,fluid=0):
         def H_gas(R):
             return self.cs(R)*R/(self.vk(R))
-        if fluid < 2:
-            if fluid == 1 and self.disk['H0'][0] == H_gas(self.disk['R0'][0]):
-                return H_gas
-            else:
-                return self.disk['H0'][fluid-1]*(R/self.disk['R0'][fluid-1])**(1+self.disk['fi'][fluid-1])
+        H0 = self.disk['H0'][fluid-1]
+        R0 = self.disk['R0'][fluid-1]
+        FI = self.disk['fi'][fluid-1]
+        if fluid == 0:
+            return H_gas(R)
+        elif fluid == 1 and H0 > H_gas(R0):
+            return H_gas(R)
         else:
-            return self.disk['H0'][fluid-1]*(R/self.disk['R0'][fluid-1])**(1+self.disk['fi'][fluid-1])
+            return H0*(R/R0)**(1+FI)
         
     def make_grid(self):
         return np.meshgrid(self.r,self.theta,self.phi)
@@ -58,8 +64,41 @@ class model:
         return R_CYL, Z_CYL
     
     
-    def get_Tdust(self):
+    def RT_Tdust(self):
+        os.chdir(self.outdir)
+        file_list = ['amr_grid.inp', 'dust_density.inp','radmc3d.inp','wavelength_micron.inp','dustopac.inp']
+        func_list = [self.write_grid, self.write_dust_density, self.write_main, self.write_wavelength,self.write_opacities]
+        for file, func in zip(file_list,func_list):
+            if os.path.exists(file) != True:
+                func()
+        try:
+            os.system('radmc3d mctherm')
+        except:
+            print('something went wrong with radmc3d')
         return 0
+    
+    def plot_RT(self):
+        if os.getcwd() != self.outdir:
+            os.chdir(self.outdir)
+        data = rpy.analyze.readData()
+        data_r = data.grid.x/AU
+        data_th = data.grid.y
+        R,TH = np.meshgrid(data_r,data_th)
+        X = R*np.sin(TH)
+        Z = R*np.cos(TH)
+        f,ax = subplots(1,2,constrained_layout=True)
+        c = ax[0].contourf(X, Z, np.log10(data.rhodust[:,:,0,0].T),levels=np.arange(-26,-11,1))
+        ax[0].contour(X, Z, np.log10(data.rhodust[:,:,0,1].T),levels=np.arange(-26,-11,1),colors='white')
+        ax[0].set_xlabel('r [AU]')
+        ax[0].set_ylabel('z [AU]')
+        cb = colorbar(c,ax=ax[0],location='top')
+        cb.set_label(r'$\rho$ [$g/cm^{-3}$]')
+        
+        c2 = ax[1].contourf(X, Z, data.dusttemp[:,:,0,0].T,levels=[0,5,10,15,25,50,100,200],cmap='magma')
+        ax[1].set_xlabel('r [AU]')
+        cb2 = colorbar(c2,ax=ax[1],location='top')
+        cb2.set_label('T [K]')
+        return f,ax
     
     def make_rz_uniform(self): #make a cylindrical grid for the chemical models
         r_uni = np.logspace(np.log10(self.grid['min'][0]), np.log10(self.grid['max'][0]), self.grid['N'][0])
@@ -96,12 +135,18 @@ class model:
         def sig_r(R):
             return (R/R0)**(p)*np.exp(-R/Rd)
         def sig_int(R):
-            sig = sig_r(R)
-            sig[R<R0] = 0.
-            sig[R>Rd] = 0.
-            return np.sum(sig*(R*AU)*(np.gradient(R))*AU)
-        
-        sig_0 = (Mtot)/(2*pi*sig_int(R))
+            if len(np.shape(R)) < 2:
+                sig = sig_r(R)
+                sig[R<R0] = 0.
+                sig[R>Rout] = 0.
+                return np.sum(sig*(R*AU)*(np.gradient(R))*AU)
+            else:
+                r = np.ravel(np.unique(R))
+                sig = sig_r(r)
+                sig[r<R0] = 0.
+                sig[r>Rout] = 0.
+                return np.sum(sig*(r*AU)*np.gradient(r)*AU)
+        sig_0 = (Mtot)/(2.*pi*sig_int(R))
         return sig_0*sig_r(R)
     
     def rho_midplane(self,R,fluid=0):
@@ -211,6 +256,7 @@ class model:
             f.write('%d\n'%(Nr))           # Number of cells
             f.write('2\n')                   # Number of dust species
             for dust in [small_dust,large_dust]:
+                dust = dust.swapaxes(0,1) # radmc assumes 'ij' indexing for some reason
                 data = dust.ravel(order='F')         # Create a 1-D view, fortran-style indexing
                 data.tofile(f, sep='\n', format="%13.6e")
                 f.write('\n')
