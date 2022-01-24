@@ -27,7 +27,7 @@ Contains the information from model.out reformatted and with updated gas tempera
 
 ![image](https://user-images.githubusercontent.com/20684970/150804191-1162dd05-9e5e-4b45-8300-0eecf2188f1d.png)
 
-Formatted in [```CompileUVMC.py```](./highenergy_RT/CompileUVMC.py) to return photons/cm^2/s/A
+Formatted in [```CompileUVMC.py```](../highenergy_RT/CompileUVMC.py) to return photons/cm^2/s/A
 
 For every radius, lists the z points, and then for every wavelength lists the flux at those z points.
 
@@ -35,7 +35,7 @@ For every radius, lists the z points, and then for every wavelength lists the fl
 
 ![image](https://user-images.githubusercontent.com/20684970/150806563-ba30a4f3-a0e0-4699-8e9b-564f9c437e69.png)
 
-Formatted in [```CompileXraysMC.py```](./highenergy_RT/CompileXraysMC.py) to be in photons/cm2/s/keV
+Formatted in [```CompileXraysMC.py```](../highenergy_RT/CompileXraysMC.py) to be in photons/cm2/s/keV
 
 #### ```ISRF file```
 
