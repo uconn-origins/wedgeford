@@ -9,12 +9,14 @@ Original Bethell code based on [Bethell and Bergin 2011](https://iopscience.iop.
 
 Two components (from original paper)
 
-1. fUV continuum from stellar source with scattering computed using Henyey–Greenstein phase function.
-2. Lyman alpha transport
+1. fUV continuum from stellar source with scattering computed using Henyey–Greenstein phase function. (this is the main MC done in the code)
+2. Lyman alpha transport (done afterwards based on template spectrum)
 
 ## X-ray contribution
 
-X-ray fluxes are computed similarly, with some template set of energies. 
+X-ray fluxes are computed similarly, with some template set of energies and output into ```.dat``` files
+
+Additional component (unclear where this goes): ```ZetaHe``` and ```ZetaH2``` - finds ionization rates and outputs them. Is this used in the chem?
 
 **Note**
 In principle, both of these could be done with the ```radmc3d mcmono ``` method by adopting continuum models for the fUV and X-ray for which radmc3d would provide mean intensity fields for the UV and X-ray at every point. Then the gas temperature could be recalculated just like in ```torus2chem.py```
