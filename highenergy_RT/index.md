@@ -14,6 +14,8 @@ Two components (from original paper)
 
 ## X-ray contribution
 
+X-ray Bethell code [Bethell and Bergin 2011b](https://iopscience.iop.org/article/10.1088/0004-637X/740/1/7/meta)
+
 X-ray fluxes are computed similarly, with some template set of energies and x-ray opacities (**missing this file**) and output into ```.dat``` files
 
 Additional component (unclear where this goes): ```ZetaHe``` and ```ZetaH2``` - finds ionization rates and outputs them. Is this used in the chem?
