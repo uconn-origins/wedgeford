@@ -39,7 +39,10 @@ In principle, both of these could be done with the ```radmc3d mcmono ``` method 
 UV Henyey-Greenstein for ```radmc-3d mcmono``` should be done with ```scattering_mode=2```
 X-ray ```radmc-3d mcmono``` can be done with the absorption coefficients scaled. (i.e. for some constant/average dust to gas ratio of the small dust to include the constant gas component there as well). We don't really need to do the RT with the large grains in this case as the absorption coefficients are much much smaller for larger grains and will affect the opacities a lot less. 
 
-Then the gas temperature could be recalculated just like in ```torus2chem.py```
+These opacities can be added into the ```dust_kappa...inp``` files based on the chosen model. (```mc therm``` will run fine as the wavelengths will be limited to the stellar spectrum and ISRF). 
+
+Then the gas temperature could be recalculated just like in ```torus2chem.py``` on the original grid. 
+
 This has the advantage that the model wouldn't be downsampled and interpolated for the high energy RT, so would be consistent with the values put into the original radmc model. (really cuts down on the amount of interpolation in general if this is computed on the original spherical grid)
 
 +[radmc3d mcmono](https://www.ita.uni-heidelberg.de/~dullemond/software/radmc-3d/manual_radmc3d/dustradtrans.html#sec-dust-monochromatic-monte-carlo)
@@ -48,10 +51,12 @@ The final values for the temperature could be computed on the original grid and 
 
 Also has the advantage of not having to have IDL to make this work...
 
-See Appendix in this [DIANA paper](https://www.aanda.org/articles/aa/pdf/2016/02/aa26538-15.pdf) for fUV and X-ray continuum models. 
+See Appendix in this [DIANA paper](https://www.aanda.org/articles/aa/pdf/2016/02/aa26538-15.pdf) for some simple fUV and X-ray continuum models.
+
+Then can use the same output writer in the compilation scripts to generate the ```.dat``` files for the chemistry.
 
 ## Cosmic ray flux 
-Attenuation in a column down the midplane.
+Attenuation in a column down the midplane based on model fits from Cleeves et al 2013.
 
 ## Interstellar Radiation Field (ISRF)
 Radmc-3D can take an ISRF to add to the dust temperature computation. Since the chemistry takes it as well, it makes sense to be consistent with the dust temperature calculations and use the same one for each. 
