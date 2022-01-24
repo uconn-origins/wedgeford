@@ -10,17 +10,22 @@ Original Bethell code based on [Bethell and Bergin 2011](https://iopscience.iop.
 Two components (from original paper)
 
 1. fUV continuum from stellar source with scattering computed using Henyey–Greenstein phase function. (this is the main MC done in the code)
-2. Lyman alpha transport (done afterwards based on template spectrum)
+2. Lyman alpha transport (done afterwards based on template spectrum?)
 
 ## X-ray contribution
 
-X-ray fluxes are computed similarly, with some template set of energies and output into ```.dat``` files
+X-ray fluxes are computed similarly, with some template set of energies and x-ray opacities (**missing this file**) and output into ```.dat``` files
 
 Additional component (unclear where this goes): ```ZetaHe``` and ```ZetaH2``` - finds ionization rates and outputs them. Is this used in the chem?
 
 **Note**
-In principle, both of these could be done with the ```radmc3d mcmono ``` method by adopting continuum models for the fUV and X-ray for which radmc3d would provide mean intensity fields for the UV and X-ray at every point. Then the gas temperature could be recalculated just like in ```torus2chem.py```
-This has the advantage that the model wouldn't be downsampled and interpolated for the high energy RT, so would be consistent with the values put into the original radmc models.
+
+In principle, both of these could be done with the ```radmc3d mcmono ``` method either by adopting simple continuum models or using template spectra for the fUV and X-ray for which radmc3d would provide mean intensity fields for the UV and X-ray at every point.
+
+UV Henyey-Greenstein for ```radmc-3d mcmono``` should be done with ```scattering_mode=2```
+
+Then the gas temperature could be recalculated just like in ```torus2chem.py```
+This has the advantage that the model wouldn't be downsampled and interpolated for the high energy RT, so would be consistent with the values put into the original radmc model. (really cuts down on the amount of interpolation in general if this is computed on the original spherical grid)
 
 +[radmc3d mcmono](https://www.ita.uni-heidelberg.de/~dullemond/software/radmc-3d/manual_radmc3d/dustradtrans.html#sec-dust-monochromatic-monte-carlo)
 
