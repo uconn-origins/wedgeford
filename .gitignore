@@ -5,3 +5,8 @@
 **/*checkpoint*
 *.pyc
 models/.DS_Store
+m1_test/dust_density.inp
+m1_test/dust_temperature.bdat
+m1_test/amr_grid.inp
+m1_test/dust_density.inp
+*.inp

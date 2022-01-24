@@ -238,22 +238,35 @@ def run_idl(rawinp, basedir, dust, Eval, runprefix, numphots, maxR, opacdir, fg,
 ############################################################
 def make_folders(basedir,runprefix):
     # Folder where to save output
+    def folder_exists(folder):
+        if not os.path.exists(folder):
+            commandrun = 'mkdir %s' % (folder)
+            os.system(commandrun)
+    
+    folddir = os.path.join(basedir,'Output','dir_'+runprefix)
+    folder_exists(folddir)
+    folddir1 = os.path.join(folddir,'inputs')
+    folddir2 = os.path.join(folddir, 'params')
+    
+    folder_exists(folddir1)
+    folder_exists(folddir2)
+    
+    #folddir1 = os.path.join(basedir, 'Output','dir_'+runprefix)
+    #if not os.path.exists(folddir1):
+       # commandrun = 'mkdir %s' % (folddir1)
+        #os.system(commandrun)
 
-    folddir1 = os.path.join(basedir, 'Output','dir_'+runprefix)
-    if not os.path.exists(folddir1):
-        commandrun = 'mkdir %s' % (folddir1)
-        os.system(commandrun)
+    #folddir = os.path.join(basedir, 'Output','dir_'+runprefix,'inputs')
+   # if not os.path.exists(folddir):
+        #commandrun = 'mkdir %s' % (folddir)
+        #os.system(commandrun)
 
-    folddir = os.path.join(basedir, 'Output','dir_'+runprefix,'inputs')
-    if not os.path.exists(folddir):
-        commandrun = 'mkdir %s' % (folddir)
-        os.system(commandrun)
-
-    folddir = os.path.join(basedir, 'Output','dir_'+runprefix,'params')
-    if not os.path.exists(folddir):
-        commandrun = 'mkdir %s' % (folddir)
-        os.system(commandrun)
-    return folddir1
+    #folddir = os.path.join(basedir, 'Output','dir_'+runprefix,'params')
+    #if not os.path.exists(folddir):
+        #commandrun = 'mkdir %s' % (folddir)
+        #os.system(commandrun)
+    
+    return folddir2
 
 ############################################################
 
@@ -264,8 +277,12 @@ def main():
 
     # Wavelengths of transfer are hardcorded here and in the RT compilation script later. If this is
     # changed, the corresponding values in wvlnfile also must be changed.
-    linearE = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0]
-    linearlam = [930.0,1000.0,1100.0,1216.0,1300.0,1400.0,1600.0,1800.0,2000.0]
+    #linearE = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0]
+    #linearlam = [930.0,1000.0,1100.0,1216.0,1300.0,1400.0,1600.0,1800.0,2000.0]
+    
+    #loads the wavelengths in the wvlnfile txt
+    linearE = list(np.loadtxt('wvlnfile.txt')[:,1])
+    linearlam = list(np.loadtxt('wvlnfile_uv.txt')[:,1])
 
     # General configuration parameters.
     parser = optparse.OptionParser()
@@ -306,7 +323,7 @@ def main():
     basedir = os.path.abspath('.')
     if basedir[-1] !=  '/':
         basedir = basedir + '/'
-    # basedir = '/Shire1/cleeves/IDLWorkspace71/uvrt2dcyl/' #os.path.abspath('.')+'/'
+        
     ## setup for parallel job call
     PROCESSES = options.nproc
     print( 'Running with %d processes\n' % PROCESSES)

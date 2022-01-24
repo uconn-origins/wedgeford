@@ -18,19 +18,11 @@ def main():
     for i in range(len(sigmavals)):  #iterates through sigmavals
         for j in range(len(lgvals)): #iterates through lgvals
             for d in range(len(dg)):
-
-        #define variables
-            # if drift == True:
-            # 	curr_name= str(sigmavals[i])+"lg_"+str(lgvals[j])+"m_unset_d"+str(Routmm[j]) #param file name w/out .dat ext.
-            # else:
-            # 	curr_name= str(sigmavals[i])+"lg_"+str(lgvals[j])+"m_unset" #param file name w/out .dat ext.
+                
                 curr_name= str(sigmavals[i])+"lg_"+str(lgvals[j])+"m_"+str(dg[d])+"dg"
-                #curr_name = "OrionM"
                 output_filename1 = "gas_"+curr_name+".out"
                 old_curr_name = curr_name
-                #curr_name = '0.01smgrabs_'+curr_name
                 dir_name = curr_name
-                #curr_name = 'OrionM'
                 curr_name_dat = curr_name+".dat" #param filename w/ .dat ext.
                 curr_name_uv = curr_name+"_uv"
                 curr_name_xray = curr_name+"_xr"
