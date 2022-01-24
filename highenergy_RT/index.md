@@ -19,6 +19,9 @@ X-ray fluxes are computed similarly, with some template set of energies.
 **Note**
 In principle, both of these could be done with the ```radmc3d mcmono ``` method by adopting continuum models for the fUV and X-ray for which radmc3d would provide mean intensity fields for the UV and X-ray at every point. Then the gas temperature could be recalculated just like in ```torus2chem.py```
 This has the advantage that the model wouldn't be downsampled and interpolated for the high energy RT, so would be consistent with the values put into the original radmc models.
+
++[radmc3d mcmono](https://www.ita.uni-heidelberg.de/~dullemond/software/radmc-3d/manual_radmc3d/dustradtrans.html#sec-dust-monochromatic-monte-carlo)
+
 The final values for the temperature could be computed on the original grid and then interpolated with everything else to the r,z slices for the chemistry.
 
 Also has the advantage of not having to have IDL to make this work...
