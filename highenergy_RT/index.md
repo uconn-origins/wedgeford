@@ -14,6 +14,20 @@ Two components (from original paper)
 ![image](https://user-images.githubusercontent.com/20684970/151234729-5cc5d3a3-f13e-4b4c-9c8e-43207e4f8bab.png)
 then recompute isotropic scattering from Lyman alpha photons with atomic hydrogren cross-section
 
+*Note on Lyman alpha (from reading too much about this, god help me)*
+the Bethell and Bergin MCMC computes the location of the H2/H dissociation layer iteratively (gross). Really only the bottom surface is really important because it's the scattering surface that scatters Lya photons deeper into the disk, thus increasing UV photon depth. The bottom surface is pretty much the boundary between H2/H, which is sort of determined by the amount of self-shielding you have. basically at a certain column, you have enough self-shielding that H2 doesn't dissociate. 
+
+Anyway, it seems to me that the way around the iterative H2/H nonsense, is just to find the column where self-shielding matters, define that as the scattering surface and set up radiative transfer with a population of fake "dust" H atoms (at 0.5 of the gas density) that have the scattering opacities of the lyman alpha line you're putting in to the code and use the isotropic scattering mode (will be very fast) and see how far the UV penetrates.
+
+Benefits: This will pretty much give you the maximum UV field penetration depth without having to worry about iterating over where your dust at etc because its built in! Aaaaaand has the added benefit that we can compare to the fUV + Lyman line without extra resonant scattering and see if it even matters for this thing, like an upper/lower limit kinda deal. 
+
+I prefer this phenomenology because as B+B 2011 admits, their iterative photodissociation stuff isn't even self-consistent/fully correct anyway and we can quickly see if this applies to the problem at all. Because if the scattering layer occurs deep beneath where UV can't even go to begin with ( which may be the case here) then we don't even gotta worry about it at all. (Also other people just kinda admit on whiffing on the whole finding H layer to begin with and make even more egregious estimates, so I think we're fine). 
+
+Second, I just read way too many CTTS spectroscopy papers just to learn that no one (except maybe like only a wee bit Nuria) even understands the physical production of Lya in these systems other than "waves hands accretion, waves hands outflows, we're all just waving our hands" -- like I don't think people even know if this is applicable to Class 0/I sources to begin with (LoooooooooL). Maybe ~*~veiling~*~ saves the day (also lol).
+
+So I think maybe running with 2 edge cases is the smartest way around this. 
+
+
 ## X-ray contribution
 
 X-ray Bethell cross-sections [Bethell and Bergin 2011b](https://iopscience.iop.org/article/10.1088/0004-637X/740/1/7/meta)
