@@ -9,6 +9,7 @@ Rsun = 69.6e9 #cm
 Lsun  = 3.8525e33 #erg/s
 AU = 1.49598e13 #cm
 yr = 3.14e7 #seconds
+pc = 3.086e18 #cm
 cmtokm = 10**(-5) #converts cm to km
 R_mu = 36149835 # (R/mu) for 2.4 g/mol in PPD
 Gconv = 6.6743e-8 # cgs
@@ -62,14 +63,14 @@ class model:
         return sqrt((Gconv*self.star['Ms']*Msun)/(R*AU))
     
     def H(self,R,fluid=0):
-        def H_gas(R):
+        def H_gas(R): #computes the pressure scale height for temp. distribution.
             return self.cs(R)*R/(self.vk(R))
         H0 = self.disk['H0'][fluid-1]
         R0 = self.disk['R0'][fluid-1]
         FI = self.disk['fi'][fluid-1]
         if fluid == 0:
             return H_gas(R)
-        elif fluid == 1 and H0 > H_gas(R0):
+        elif fluid == 1 and H0 > H_gas(R0): #if H of small dust > H of gas, go with Hgas
             return H_gas(R)
         else:
             return H0*(R/R0)**(1+FI)
@@ -344,13 +345,15 @@ class model:
         data = rpy.analyze.readData()
         return data.rhodust[:,:,:,fluid-1]
     
-    def make_rz_H(self): #make a cylindrical grid for the chemical models based on scale heights
-        r_uni = np.logspace(np.log10(self.grid['min'][1]), np.log10(self.grid['max'][-1]), self.grid['N'][0])
-        H_lim = self.H(r_uni)*8
-        new_r = r_uni[H_lim<np.amax(r_uni)] #select new radial limit for 8 scale heights up
-        N_th = self.grid['N'][1]
-        z_norm = np.append([0],np.logspace(-3,0,49)) #50 points in the Z direction
-        R,Z = np.meshgrid(new_r,z_norm)
+    def make_rz_H(self,return_faces = False): #make a logarithmically spaced cylindrical grid
+        zmin = 1e-10
+        new_r = np.logspace(np.log10(self.grid['min'][0]), np.log10(self.grid['max'][0]), self.grid['N'][0])
+        zf_norm = np.append(zmin, np.logspace(-4,0,50)) #faces of the z-cells
+        zc_norm = 0.5*(zf_norm[1:] + zf_norm[:-1]) #50 points in the Z direction
+        if return_faces == True:
+            R,Z = np.meshgrid(new_r,zf_norm) #returns the bin edges at the radius, for summing up columns
+        else:
+            R,Z = np.meshgrid(new_r,zc_norm)
         Z *= R/np.tan(np.radians(self.env['theta_min']+15))
         return R,Z
     
