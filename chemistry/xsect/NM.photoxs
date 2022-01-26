@@ -1,0 +1,15 @@
+c N2 photodissociation x-sect from Chan et al. 1993
+c
+c col 1 - lower range in angstroms
+c col 2 - upper range in angstroms
+c col 3 - xsection in units of 1.0e-18 cm^2
+      910          920            32.939119
+      920          930            28.471096
+      930          940            23.637742
+      940          950            61.508579
+      950          960            14.086709
+      960          970           212.094380
+      970          980            96.073988
+      980          990            33.031161
+      990         1000            15.826569
+     1000         3000             0.000000

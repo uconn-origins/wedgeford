@@ -1,0 +1,490 @@
+Printing rate results for t = 0.01 Myr and zone = 45.
+['CO', 'GRAIN', 'CO(gr)', 'GRAIN', '', '']
+Rate: -5.230e-01
+['CO(gr)', 'TEMP', 'CO', '', '', '']
+Rate:  5.230e-01
+['He+', 'CO', 'C+', 'O', 'He', '']
+Rate: -1.940e-08
+['HCO+', 'GRAIN-', 'H', 'CO', 'GRAIN0', '']
+Rate:  1.860e-08
+['H3+', 'CO', 'HCO+', 'H2', '', '']
+Rate: -6.210e-09
+['C+', 'O2', 'O+', 'CO', '', '']
+Rate:  4.920e-09
+['C', 'O2', 'CO', 'O', '', '']
+Rate:  3.580e-09
+['CO', 'OH', 'CO2', 'H', '', '']
+Rate: -3.220e-09
+['CH5+', 'CO', 'HCO+', 'CH4', '', '']
+Rate: -2.970e-09
+['N2H+', 'CO', 'HCO+', 'N2', '', '']
+Rate: -1.410e-09
+['O', 'CH', 'CO', 'H', '', '']
+Rate:  1.210e-09
+['HCO+', 'H2CO', 'H3CO+', 'CO', '', '']
+Rate:  3.810e-10
+['H3+', 'CO', 'HOC+', 'H2', '', '']
+Rate: -3.640e-10
+['H2CO', 'PHOTON', 'CO', 'H2', '', '']
+Rate:  2.420e-10
+['CH', 'O2', 'CO', 'OH', '', '']
+Rate:  2.280e-10
+['H', 'HCO', 'H2', 'CO', '', '']
+Rate:  1.780e-10
+['H2CO', 'PHOTON', 'CO', 'H', 'H', '']
+Rate:  1.690e-10
+['H3CO+', 'GRAIN-', 'CO', 'H', 'H2', 'GRAIN0']
+Rate:  1.570e-10
+['H2CO+', 'GRAIN-', 'CO', 'H', 'H', 'GRAIN0']
+Rate:  1.400e-10
+['O', 'CH2', 'CO', 'H', 'H', '']
+Rate:  1.220e-10
+['O', 'CH2', 'CO', 'H2', '', '']
+Rate:  8.130e-11
+['HCO+', 'H2O', 'H3O+', 'CO', '', '']
+Rate:  7.340e-11
+['HCO+', 'E', 'CO', 'H', '', '']
+Rate:  4.650e-11
+['CO', 'PHOTON', 'C', 'O', '', '']
+Rate: -4.310e-11
+['', 'HOC+', 'H2', 'HCO+', 'H2', '']
+Rate:  3.970e-11
+['HOC+', 'CO', 'HCO+', 'CO', '', '']
+Rate: -3.970e-11
+['HCO+', 'OH', 'H2O+', 'CO', '', '']
+Rate:  2.450e-11
+['HOC+', 'N2', 'N2H+', 'CO', '', '']
+Rate:  2.420e-11
+['HCO2+', 'CO', 'HCO+', 'CO2', '', '']
+Rate: -2.180e-11
+['HCO+', 'CH2O2', 'CH3O2+', 'CO', '', '']
+Rate:  1.750e-11
+['C+', 'H2CO', 'CH2+', 'CO', '', '']
+Rate:  1.610e-11
+['O', 'HCO', 'OH', 'CO', '', '']
+Rate:  1.560e-11
+['O', 'CN', 'CO', 'N', '', '']
+Rate:  1.520e-11
+['CH3+', 'CO', 'C2H3O+', '', '', '']
+Rate: -9.600e-12
+['C2H3O+', 'GRAIN-', 'CH3', 'CO', 'GRAIN0', '']
+Rate:  6.180e-12
+['O', 'OCN', 'NO', 'CO', '', '']
+Rate:  4.590e-12
+['HCO+', 'HCN', 'HCNH+', 'CO', '', '']
+Rate:  3.420e-12
+['O', 'C2', 'CO', 'C', '', '']
+Rate:  3.200e-12
+['C2H2O+', 'GRAIN-', 'CH2', 'CO', 'GRAIN0', '']
+Rate:  3.120e-12
+['O', 'C2H', 'CO', 'CH', '', '']
+Rate:  2.790e-12
+['C2H2O', 'PHOTON', 'CH2', 'CO', '', '']
+Rate:  2.350e-12
+['HCO+', 'C2H2O', 'C2H3O+', 'CO', '', '']
+Rate:  2.220e-12
+['C2H', 'O2', 'HCO', 'CO', '', '']
+Rate:  1.700e-12
+['HCO+', 'HNC', 'HCNH+', 'CO', '', '']
+Rate:  1.580e-12
+['H2+', 'CO', 'HCO+', 'H', '', '']
+Rate: -1.560e-12
+['CO', 'CRP', 'C', 'O', '', '']
+Rate: -1.030e-12
+['OH+', 'CO', 'HCO+', 'O', '', '']
+Rate: -9.660e-13
+['H2O+', 'CO', 'HCO+', 'OH', '', '']
+Rate: -8.750e-13
+['HNO+', 'CO', 'HCO+', 'NO', '', '']
+Rate: -6.790e-13
+['CO', 'CRP', 'CO+', 'E', '', '']
+Rate: -6.180e-13
+['N+', 'CO', 'CO+', 'N', '', '']
+Rate: -6.150e-13
+['H3CO+', 'E', 'CO', 'H', 'H2', '']
+Rate:  5.800e-13
+['CO2', 'PHOTON', 'CO', 'O', '', '']
+Rate:  5.540e-13
+['H2CO+', 'E', 'CO', 'H', 'H', '']
+Rate:  5.060e-13
+['C2H3+', 'O', 'CH3+', 'CO', '', '']
+Rate:  4.870e-13
+['H2+', 'CO', 'CO+', 'H2', '', '']
+Rate: -4.260e-13
+['HCO+', 'C2H2', 'C2H3+', 'CO', '', '']
+Rate:  3.820e-13
+['HCO+', 'HNO', 'H2NO+', 'CO', '', '']
+Rate:  3.230e-13
+['NH+', 'CO', 'HCO+', 'N', '', '']
+Rate: -3.100e-13
+['O', 'C2N', 'CO', 'CN', '', '']
+Rate:  2.520e-13
+['C2H3+', 'CO', 'H3C3O+', '', '', '']
+Rate: -2.210e-13
+['C2HO+', 'GRAIN-', 'CO', 'C', 'H', 'GRAIN0']
+Rate:  1.500e-13
+['C', 'NO', 'CO', 'N', '', '']
+Rate:  1.470e-13
+['CO+', 'H', 'H+', 'CO', '', '']
+Rate:  1.360e-13
+['HOC+', 'GRAIN-', 'CO', 'H', 'GRAIN0', '']
+Rate:  1.150e-13
+['NCO+', 'GRAIN-', 'CO', 'N', 'GRAIN0', '']
+Rate:  1.040e-13
+['NH+', 'CO', 'NCO+', 'H', '', '']
+Rate: -1.040e-13
+['C', 'OH', 'CO', 'H', '', '']
+Rate:  1.020e-13
+['C2HO+', 'GRAIN-', 'CO', 'CH', 'GRAIN0', '']
+Rate:  1.000e-13
+['O', 'CCO', 'CO', 'CO', '', '']
+Rate:  9.340e-14
+['HCO+', 'NH3', 'NH4+', 'CO', '', '']
+Rate:  8.180e-14
+['O', 'HC3', 'C2H', 'CO', '', '']
+Rate:  8.170e-14
+['N+', 'CO', 'NO+', 'C', '', '']
+Rate: -7.530e-14
+['O', 'C3H', 'C2H', 'CO', '', '']
+Rate:  7.290e-14
+['HCO+', 'C', 'CH+', 'CO', '', '']
+Rate:  5.350e-14
+['H2CO', 'PHOTON', 'CO', 'H2', '', '']
+Rate:  4.500e-14
+['H2CO', 'PHOTON', 'CO', 'H', 'H', '']
+Rate:  4.500e-14
+['H-', 'CO', 'HCO', 'E', '', '']
+Rate: -3.720e-14
+['HCO+', 'CH', 'CH2+', 'CO', '', '']
+Rate:  3.250e-14
+['HCO2+', 'GRAIN-', 'CO', 'H', 'O', 'GRAIN0']
+Rate:  2.310e-14
+['HCO+', 'HNSi', 'SiNH2+', 'CO', '', '']
+Rate:  2.010e-14
+['C3H3+', 'O', 'C2H3+', 'CO', '', '']
+Rate:  1.600e-14
+['H3C3+', 'O', 'C2H3+', 'CO', '', '']
+Rate:  1.540e-14
+['O2H+', 'CO', 'HCO+', 'O2', '', '']
+Rate: -1.350e-14
+['C2H2O+', 'E', 'CH2', 'CO', '', '']
+Rate:  1.340e-14
+['C2H3O+', 'E', 'CH3', 'CO', '', '']
+Rate:  1.340e-14
+['C2H3N+', 'CO', 'HCO+', 'C2H2N', '', '']
+Rate: -1.310e-14
+['HCO+', 'NH2CHO', 'NH2CH2O+', 'CO', '', '']
+Rate:  1.300e-14
+['CO+', 'O', 'O+', 'CO', '', '']
+Rate:  1.250e-14
+['C+', 'CO2', 'CO+', 'CO', '', '']
+Rate:  1.250e-14
+['C2H5O+', 'GRAIN-', 'CH4', 'CO', 'H', 'GRAIN0']
+Rate:  9.960e-15
+['HCO2+', 'GRAIN-', 'OH', 'CO', 'GRAIN0', '']
+Rate:  9.140e-15
+['CO', 'PHOTON', 'C', 'O', '', '']
+Rate: -8.890e-15
+['OCS', 'PHOTON', 'CO', 'S', '', '']
+Rate:  5.560e-15
+['N2+', 'CO', 'CO+', 'N2', '', '']
+Rate: -4.890e-15
+['HCO+', 'SO', 'HSO+', 'CO', '', '']
+Rate:  3.480e-15
+['NH2CH2O+', 'GRAIN-', 'NH3', 'CO', 'H', 'GRAIN0']
+Rate:  3.220e-15
+['H3+', 'CH2O2', 'H3O+', 'CO', 'H2', '']
+Rate:  2.930e-15
+['HCO+', 'C2H4O', 'C2H5O+', 'CO', '', '']
+Rate:  2.610e-15
+['C2H2+', 'CO', 'H2C3O+', '', '', '']
+Rate: -2.580e-15
+['N', 'CCO', 'CN', 'CO', '', '']
+Rate:  2.490e-15
+['HCO+', 'NH2', 'NH3+', 'CO', '', '']
+Rate:  2.390e-15
+['H2CO', 'CRP', 'CO', 'H2', '', '']
+Rate:  2.090e-15
+['He+', 'C2H2O', 'CH2+', 'CO', 'He', '']
+Rate:  1.680e-15
+['SiNC+', 'O', 'SiN+', 'CO', '', '']
+Rate:  1.650e-15
+['CO+', 'O2', 'O2+', 'CO', '', '']
+Rate:  1.500e-15
+['HCO+', 'OCS', 'HOCS+', 'CO', '', '']
+Rate:  1.480e-15
+['CH4+', 'CO', 'HCO+', 'CH3', '', '']
+Rate: -1.380e-15
+['OCS+', 'GRAIN-', 'CO', 'S', 'GRAIN0', '']
+Rate:  9.560e-16
+['O', 'CS', 'CO', 'S', '', '']
+Rate:  8.950e-16
+['HCO+', 'NH', 'NH2+', 'CO', '', '']
+Rate:  7.250e-16
+['HCO+', 'C2H3N', 'C2H4N+', 'CO', '', '']
+Rate:  6.360e-16
+['O', 'C3N', 'CO', 'C2N', '', '']
+Rate:  5.680e-16
+['C2H4O', 'PHOTON', 'CH4', 'CO', '', '']
+Rate:  5.460e-16
+['C2HO+', 'E', 'CO', 'C', 'H', '']
+Rate:  5.300e-16
+['H2C3O+', 'GRAIN-', 'C2H2', 'CO', 'GRAIN0', '']
+Rate:  5.120e-16
+['O', 'C4', 'CO', 'C3', '', '']
+Rate:  4.570e-16
+['CO(gr)', 'PHOTON', 'CO', '', '', '']
+Rate:  4.360e-16
+['HCO+', 'HC3N', 'C3H2N+', 'CO', '', '']
+Rate:  3.980e-16
+['C2HO+', 'E', 'CO', 'CH', '', '']
+Rate:  3.530e-16
+['HCO+', 'CH2', 'CH3+', 'CO', '', '']
+Rate:  2.880e-16
+['HCO2+', 'E', 'CO', 'H', 'O', '']
+Rate:  2.610e-16
+['NCO+', 'E', 'CO', 'N', '', '']
+Rate:  2.230e-16
+['HOC+', 'E', 'CO', 'H', '', '']
+Rate:  2.130e-16
+['HCO', 'PHOTON', 'H', 'CO', '', '']
+Rate:  2.060e-16
+['OH', 'HCO', 'H2O', 'CO', '', '']
+Rate:  1.800e-16
+['C2H2O', 'PHOTON', 'CH2', 'CO', '', '']
+Rate:  1.670e-16
+['O', 'C4H', 'C3H', 'CO', '', '']
+Rate:  1.490e-16
+['O', 'C4H', 'HC3', 'CO', '', '']
+Rate:  1.490e-16
+['S', 'CO', 'OCS', '', '', '']
+Rate: -1.380e-16
+['HCO+', 'C2H', 'C2H2+', 'CO', '', '']
+Rate:  1.300e-16
+['HCO+', 'C3', 'C3H+', 'CO', '', '']
+Rate:  1.280e-16
+['HCO+', 'CH3OH', 'CH5O+', 'CO', '', '']
+Rate:  1.270e-16
+['HCO+', 'HCO', 'H2CO+', 'CO', '', '']
+Rate:  1.230e-16
+['C+', 'OCS', 'CS+', 'CO', '', '']
+Rate:  1.060e-16
+['HCO2+', 'E', 'OH', 'CO', '', '']
+Rate:  1.030e-16
+['C3O', 'PHOTON', 'C2', 'CO', '', '']
+Rate:  8.810e-17
+['O-', 'CO', 'CO2', 'E', '', '']
+Rate: -8.090e-17
+['C+', 'SO', 'S+', 'CO', '', '']
+Rate:  7.820e-17
+['C', 'O', 'CO', '', '', '']
+Rate:  6.280e-17
+['CO2', 'PHOTON', 'CO', 'O', '', '']
+Rate:  6.170e-17
+['C', 'OCN', 'CO', 'CN', '', '']
+Rate:  5.890e-17
+['C2H5O+', 'E', 'CH4', 'CO', 'H', '']
+Rate:  5.530e-17
+['O2+', 'HCO', 'O2H+', 'CO', '', '']
+Rate:  4.560e-17
+['HCO+', 'C3O', 'HC3O+', 'CO', '', '']
+Rate:  4.200e-17
+['HCO+', 'HC2NC', 'HC2NCH+', 'CO', '', '']
+Rate:  4.150e-17
+['CH5+', 'CO', 'C2H5O+', '', '', '']
+Rate: -3.870e-17
+['CO(gr)', 'C-RAY', 'CO', '', '', '']
+Rate:  3.530e-17
+['HCO+', 'SiO', 'HSiO+', 'CO', '', '']
+Rate:  3.330e-17
+['He+', 'CO2', 'O+', 'CO', 'He', '']
+Rate:  2.370e-17
+['O', 'C5H', 'CO', 'C4H', '', '']
+Rate:  2.160e-17
+['HCO+', 'CH3N', 'CH4N+', 'CO', '', '']
+Rate:  2.060e-17
+['O', 'C6H', 'CO', 'C5H', '', '']
+Rate:  1.910e-17
+['NH2CH2O+', 'E', 'NH3', 'CO', 'H', '']
+Rate:  1.810e-17
+['O', 'H2C3', 'C2H2', 'CO', '', '']
+Rate:  1.750e-17
+['HCO+', 'HC3', 'H2C3+', 'CO', '', '']
+Rate:  1.520e-17
+['O', 'C4N', 'C3N', 'CO', '', '']
+Rate:  1.420e-17
+['O', 'C5N', 'C4N', 'CO', '', '']
+Rate:  1.380e-17
+['HCO+', 'CH5N', 'CH6N+', 'CO', '', '']
+Rate:  1.270e-17
+['HCO+', 'C3H', 'C3H2+', 'CO', '', '']
+Rate:  1.050e-17
+['H+', 'NH2CHO', 'NH4+', 'CO', '', '']
+Rate:  9.130e-18
+['CO+', 'CH4', 'CH4+', 'CO', '', '']
+Rate:  8.590e-18
+['C2H2O', 'CRP', 'CH2', 'CO', '', '']
+Rate:  7.700e-18
+['HCO+', 'CS', 'HCS+', 'CO', '', '']
+Rate:  7.220e-18
+['CO+', 'H2CO', 'H2CO+', 'CO', '', '']
+Rate:  6.440e-18
+['O', 'C6', 'CO', 'C5', '', '']
+Rate:  5.930e-18
+['C+', 'HCO', 'CH+', 'CO', '', '']
+Rate:  5.570e-18
+['O2+', 'C2', 'CO+', 'CO', '', '']
+Rate:  5.310e-18
+['HCN+', 'CO', 'HCO+', 'CN', '', '']
+Rate: -5.250e-18
+['HCO+', 'H-', 'CO', 'H2', '', '']
+Rate:  5.000e-18
+['HCO+', 'C2', 'C2H+', 'CO', '', '']
+Rate:  4.320e-18
+['H+', 'OCS', 'HS+', 'CO', '', '']
+Rate:  4.270e-18
+['HCO+', 'C6H6', 'C6H7+', 'CO', '', '']
+Rate:  4.050e-18
+['C', 'SO', 'CO', 'S', '', '']
+Rate:  3.570e-18
+['OCS+', 'E', 'CO', 'S', '', '']
+Rate:  3.520e-18
+['CO2', 'CRP', 'CO', 'O', '', '']
+Rate:  3.450e-18
+['H2C3O+', 'E', 'C2H2', 'CO', '', '']
+Rate:  3.110e-18
+['HCO+', 'S', 'HS+', 'CO', '', '']
+Rate:  2.400e-18
+['HCO+', 'HS2', 'H2S2+', 'CO', '', '']
+Rate:  2.070e-18
+['HCO+', 'NH2CN', 'NH2CNH+', 'CO', '', '']
+Rate:  1.820e-18
+['CO+', 'H2O', 'H2O+', 'CO', '', '']
+Rate:  1.720e-18
+['C3H+', 'CO', 'HC4O+', '', '', '']
+Rate: -1.580e-18
+['He+', 'NH2CHO', 'NH3+', 'CO', 'He', '']
+Rate:  1.570e-18
+['C+', 'SiO', 'Si+', 'CO', '', '']
+Rate:  1.520e-18
+['HCO+', 'C3S', 'HC3S+', 'CO', '', '']
+Rate:  1.510e-18
+['HCO+', 'HC5N', 'C5H2N+', 'CO', '', '']
+Rate:  1.450e-18
+['C3O+', 'GRAIN-', 'C2', 'CO', 'GRAIN0', '']
+Rate:  1.420e-18
+['C+', 'C3O', 'C3+', 'CO', '', '']
+Rate:  1.300e-18
+['HCO+', 'CH3O', 'CH4O+', 'CO', '', '']
+Rate:  1.250e-18
+['HCO+', 'CCO', 'C2HO+', 'CO', '', '']
+Rate:  1.250e-18
+['C', 'HCO', 'CH', 'CO', '', '']
+Rate:  1.190e-18
+['CH3+', 'OCS', 'H3CS+', 'CO', '', '']
+Rate:  8.720e-19
+['HC4O+', 'GRAIN-', 'C3H', 'CO', 'GRAIN0', '']
+Rate:  8.690e-19
+['HC4O+', 'GRAIN-', 'HC3', 'CO', 'GRAIN0', '']
+Rate:  8.690e-19
+['S+', 'H2CO', 'H2S+', 'CO', '', '']
+Rate:  8.410e-19
+['SiO+', 'CO', 'Si+', 'CO2', '', '']
+Rate: -8.400e-19
+['HCO+', 'SiC2H', 'SiC2H2+', 'CO', '', '']
+Rate:  7.570e-19
+['HCO+', 'C3H2', 'C3H3+', 'CO', '', '']
+Rate:  7.030e-19
+['HCO+', 'SiO2', 'HSiO2+', 'CO', '', '']
+Rate:  6.780e-19
+['He+', 'OCS', 'S+', 'CO', 'He', '']
+Rate:  5.830e-19
+['HCO+', 'C2H4', 'C2H5+', 'CO', '', '']
+Rate:  5.520e-19
+['OCS', 'PHOTON', 'CO', 'S', '', '']
+Rate:  5.480e-19
+['O', 'SiC2', 'SiC', 'CO', '', '']
+Rate:  4.980e-19
+['HCO+', 'C3H3', 'C3H4+', 'CO', '', '']
+Rate:  4.290e-19
+['C4H2+', 'O', 'C3H2+', 'CO', '', '']
+Rate:  4.230e-19
+['C4H2+', 'O', 'H2C3+', 'CO', '', '']
+Rate:  4.230e-19
+['O', 'SiC', 'CO', 'Si', '', '']
+Rate:  3.980e-19
+['O', 'C8', 'CO', 'C7', '', '']
+Rate:  3.500e-19
+['O', 'C7H', 'CO', 'C6H', '', '']
+Rate:  2.920e-19
+['C+', 'SO2', 'SO+', 'CO', '', '']
+Rate:  2.610e-19
+['HCO+', 'C2S', 'HC2S+', 'CO', '', '']
+Rate:  2.600e-19
+['CN+', 'CO', 'CO+', 'CN', '', '']
+Rate: -2.600e-19
+['CN', 'NO', 'N2', 'CO', '', '']
+Rate:  2.500e-19
+['HCO+', 'Si', 'SiH+', 'CO', '', '']
+Rate:  2.130e-19
+['HCO+', 'H2CS', 'H3CS+', 'CO', '', '']
+Rate:  1.730e-19
+['O', 'C10', 'CO', 'C9', '', '']
+Rate:  1.650e-19
+['H2CO+', 'HCO', 'H3CO+', 'CO', '', '']
+Rate:  1.560e-19
+['HCO+', 'SiC2H2', 'SiC2H3+', 'CO', '', '']
+Rate:  1.560e-19
+['CO+', 'NO', 'NO+', 'CO', '', '']
+Rate:  1.210e-19
+['C2O+', 'GRAIN-', 'CO', 'C', 'GRAIN0', '']
+Rate:  1.170e-19
+['HCO+', 'C2H3', 'C2H4+', 'CO', '', '']
+Rate:  1.100e-19
+['C3H+', 'O2', 'C2HO+', 'CO', '', '']
+Rate:  1.070e-19
+['H+', 'HCO', 'H2+', 'CO', '', '']
+Rate:  1.070e-19
+['HCO+', 'HC7N', 'C7H2N+', 'CO', '', '']
+Rate:  9.670e-20
+['CO+', 'OH', 'OH+', 'CO', '', '']
+Rate:  9.450e-20
+['HCO+', 'C4H3', 'C4H4+', 'CO', '', '']
+Rate:  8.540e-20
+['C', 'C3O', 'C3', 'CO', '', '']
+Rate:  8.010e-20
+['HCO+', 'C5', 'C5H+', 'CO', '', '']
+Rate:  7.500e-20
+['O', 'C3', 'CO', 'C2', '', '']
+Rate:  6.160e-20
+['He+', 'HCO', 'HeH+', 'CO', '', '']
+Rate:  5.980e-20
+['C2H4O', 'PHOTON', 'CH4', 'CO', '', '']
+Rate:  5.860e-20
+['O', 'C8H', 'CO', 'C7H', '', '']
+Rate:  4.560e-20
+['HCO+', 'C3N', 'C3HN+', 'CO', '', '']
+Rate:  3.950e-20
+['CO2+', 'O', 'O2+', 'CO', '', '']
+Rate:  3.730e-20
+['CH3+', 'HCO', 'CH4+', 'CO', '', '']
+Rate:  3.500e-20
+['He+', 'C3O', 'C2+', 'CO', 'He', '']
+Rate:  3.310e-20
+['HCO+', 'CH3C3N', 'C4H4N+', 'CO', '', '']
+Rate:  3.040e-20
+['OCS', 'CRP', 'CO', 'S', '', '']
+Rate:  2.610e-20
+['HCO+', 'CH3C4H', 'C5H5+', 'CO', '', '']
+Rate:  1.510e-20
+['HCO', 'CH3', 'CH4', 'CO', '', '']
+Rate:  1.380e-20
+['HCO+', 'C4H', 'C4H2+', 'CO', '', '']
+Rate:  1.310e-20
+['C', 'SO2', 'CO', 'SO', '', '']
+Rate:  1.310e-20
+['CO+', 'CO2', 'CO2+', 'CO', '', '']
+Rate:  1.300e-20
+['HNSi+', 'CO', 'HCO+', 'SiN', '', '']
+Rate: -1.130e-20
+Net Rate: -3.379e-09

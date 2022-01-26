@@ -1,0 +1,8 @@
+# input & output files:
+rspecies_mergenew_masscal.dat               # file with species
+rreacs_mergenew_reformat.dat                # file with reactions
+uv_photons_PrSmUV_e0p1.dat                  # file with uvfield
+xray_photons_PrSm_V2_e0p1.dat               # file with xrfield
+None                                        # file with ISRF
+SLR_combined.dat                            # Radionuclide Ion Rate
+

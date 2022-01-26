@@ -1,0 +1,40 @@
+Change Log
+
+2.7 (1/10/11)
+* Include cosmic-ray induced UV field.  
+	(uv_field.f)
+* Include gas temperatures in the environ files as separate from the dust temperatures (Tk -> Tg, include Td).  If Tgas < 0, set it equal to Tdust.
+	(disk_chemistry.f, calc_rates.f, time_dependent.f, environ.h, environ files)
+* Removed AvIS values from environ files
+* NEW FORMAT FOR ENVIRON FILES - Remove AvIS, added Tgas
+
+2.6.5 (12/21/10)
+* Add RMAX variable instead of hard-coding the value
+	(environ.h, disk_chemistry.f)
+* Add flag to makefile so that each line ends at column 80 instead of 72
+	(makefile)
+
+2.6.4.1 (12/16/10)
+* Fix bug from last change where the last radius in the file was not matched in the photons file.
+
+2.6.4 (12/8/10)
+* Now finds the radius closest to the environ file radius in the photons file instead of the first one that was within an accuracy of 1e-2.  
+    (uv_field.f, disk_chemistry.f)
+
+2.6.3 (12/8/10)
+* In uv_field.f, fix check so that last zone in photons file is only ignored if it is larger than the one immediately preceding it.  
+    (uv_field.f, disk_chemistry.f)
+
+2.6.2 (12/3/10)
+* Add CRionization flag to turn cosmic-ray ionization on/off 
+	(disk_chemistry.f, calc_rates.f, rates.h, 5flags.inp)
+* Add xraydust flag to turn on/off dust settling dependent x-ray opacity 
+	(disk_chemistry.f, calc_rates.f, environ.h, 5flags.inp)
+* Remove lya_g0 option since it's unused
+	(disk_chemistry.f, rates.h, uv_field.f, 5flags.inp)
+
+2.6.1 (12/2/10)
+* Increase number of significant digits in xsect/*.calc files to 5 digits after the decimal point
+	(uv_field.f)
+* Remove chemrun variable - Was used to skip zones at top of the disk where uvfield = 0. 
+	(disk_chemistry.f, environ.h)

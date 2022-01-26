@@ -1,0 +1,53 @@
+C.photoxs - not on website
+C2.photoxs - used website values instead of redone values from graph
+C2H.photoxs - only lines (web)
+? C2H2.photoxs - Suto & Lee '84
+C2H4.photoxs - web
+C3.photoxs - only lines (web)
+C4H2.photoxs - not on website
+CH+.photoxs - web
+CH.photoxs - web (lines + cont)
+CH2.photoxs - web (lines + cont)
+? CH3CN.photoxs - Suto & Lee '85
+CH3OH.photoxs - web (though more detailed in Suto & Lee '85)
+CH4.photoxs - web + details from Lee & Chiang '83
+CH4O.photoxs - CH3OH
+CN.photoxs - web
+CO2.photoxs - web
+CS2.photoxs - web + details from Lee '83
+D2O.photoxs - H2O
+H2+.photoxs - web
+H2CO.photoxs - web
+H2O.photoxs - web
+H2O_2.photoxs - web
+H2S.photoxs - web (lines + cont)
+H2Z.photoxs - H2O
+H3+.photoxs - web
+HC3N.photoxs - web (lines + cont)
+HCN.photoxs - web only has lines, values from Nuth & Clicker '82 and LISA group
+HCl.photoxs - web
+HDO.photoxs - H2O
+HNC.photoxs - HCN
+N2.photoxs - Chan et al. '93, web only has lines at <1000 A (ignored)
+ND.photoxs - NH
+ND2.photoxs - NH2
+ND3.photoxs - NH3
+NH.photoxs - mostly web + Kirby & Goldfield '91
+NH2.photoxs - lines from web + Saxon et al. '83
+NH2D.photoxs - NH3
+NH3.photoxs - Watanabe et al. & Thmopson et al.
+NHD.photoxs - NH2
+NHD2.photoxs - NH3
+NO.photoxs - web, >1060 from Lee '84
+O2.photoxs - web (lines + cont)
+OCS.photoxs - Lee '83
+OH+.photoxs - web
+OH.photoxs - web
+OZ.photoxs - O2
+SO.photoxs - web
+SO2.photoxs - Lee '83
+SiH+.photoxs - web
+Y.photoxs - C
+YH+.photoxs - CH+
+YH.photoxs - CH
+ZH.photoxs - OH

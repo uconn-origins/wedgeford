@@ -1,0 +1,25 @@
+c NH2 photodissociation x-sect read from graphs in:
+c Saxon, Lengsfield & Liu 1983, J. Chem. Phys, 78, 1
+c
+c col 1 - lower range in angstroms
+c col 2 - upper range in angstroms
+c col 3 - xsection in units of 1.0e-18
+    1095    1105    100.0
+    1105    1295      0.0
+    1295    1305     48.0
+    1305    1400      0.0
+	1400	1450	5.5e-2
+	1450	1500	1.9e-1
+	1500	1550	1.3e-1
+	1550	1600	1.8
+	1600	1617    15.5
+    1617    1627    65.5
+    1627    1650    15.5
+	1650	1700	2.4e-3
+	1700	1750	2.2e-3
+	1750	1775    8.0e-4
+    1775    1785    230.0
+    1785    1800    8.0e-4
+	1800	1850	8.7e-4
+	1850	1900	3.0e-3
+	1900	1950	2.2e-3

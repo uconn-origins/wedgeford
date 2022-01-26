@@ -1,0 +1,7 @@
+# input & output files:
+rspecies_herb0308gr_Y2degZfull.dat            # file with species
+rreacs_herb0308gr_Y2degZfull.dat              # file with reactions
+uv_photons_TWH_Cool_e0p1.dat                # file with uvfield
+xray_photons_TWC_ry4.3.dat                  # file with xrfield
+None                                        # file with ISRF
+None                                        # Radionuclide Ion Rate

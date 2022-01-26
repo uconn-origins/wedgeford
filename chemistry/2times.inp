@@ -1,0 +1,4 @@
+# Time steps:
+6.000D+06              #last time step (yr),
+1.000D-00              #first time step (yr),
+180                     #total amount of time steps

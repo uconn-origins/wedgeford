@@ -1,0 +1,29 @@
+# Values needed to calculate photodesorption rates for Lyman alpha
+# Yields taken from van Dishoeck 2006 (Faraday Discussions)
+# Y(H2O) = 2e-3 from Oberg 08, subm (eqn 4).  Therefore Y = sigma / 6e-15
+# Species	Yield
+CH      8.33e-06
+CH2     8.33e-06
+CH4     3.00e-03
+C2      8.33e-04
+C3      1.67e-04
+C2H     1.67e-04
+C2H2    6.67e-03
+C4H2    5.83e-03
+OH      3.00e-04
+H2O     2.00e-03
+O2      1.67e-06
+CO2     1.02e-05
+H2CO    1.67e-03
+CH3OH   2.33e-03
+NH      1.67e-04
+NH3     1.67e-03
+HCN     5.00e-03
+HC3N    4.17e-03
+CH3CN   3.33e-03
+NO      6.67e-05
+H2S     5.50e-03
+SO      1.67e-02
+SO2     5.00e-03
+OCS     2.50e-03
+CS2     4.17e-03

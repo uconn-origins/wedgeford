@@ -1,0 +1,7 @@
+# 6066
+# 5976
+# First number is number of lines in the file 
+# Second number is the number of reactions
+# alpha values increased by 1e12 since I treat GRAIN- and GRAIN0 as separate species
+    1 CO           GRAIN        CO(gr)       GRAIN                                    3.14e-10  2.80e+01  1.00e+00  20
+    2 CO(gr)       TEMP         CO                                                    8.55e+02  2.80e+01  1.50e+15 -25
