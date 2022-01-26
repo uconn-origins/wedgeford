@@ -10,7 +10,9 @@ Original Bethell code based on [Bethell and Bergin 2011](https://iopscience.iop.
 Two components (from original paper)
 
 1. fUV continuum from stellar source with scattering computed using Henyey–Greenstein phase function. (this is the main MC done in the code)
-2. Lyman alpha transport (done afterwards based on template spectrum?)
+2. Lyman alpha transport --> from original Fogel Paper: compute the H2 fraction from ionization rate
+![image](https://user-images.githubusercontent.com/20684970/151234729-5cc5d3a3-f13e-4b4c-9c8e-43207e4f8bab.png)
+then recompute isotropic scattering from Lyman alpha photons with atomic hydrogren cross-section
 
 ## X-ray contribution
 
