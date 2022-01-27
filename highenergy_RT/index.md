@@ -23,9 +23,8 @@ Benefits: This will pretty much give you the maximum UV field penetration depth 
 
 I prefer this phenomenology because as B+B 2011 admits, their iterative photodissociation stuff isn't even self-consistent/fully correct anyway and we can quickly see if this applies to the problem at all. Because if the scattering layer occurs deep beneath where UV can't even go to begin with ( which may be the case here) then we don't even gotta worry about it at all. (Also other people just kinda admit on whiffing on the whole finding H layer to begin with and make even more egregious estimates, so I think we're fine). 
 
-Second, I just read way too many CTTS spectroscopy papers just to learn that no one (except maybe like only a wee bit Nuria) even understands the physical production of Lya in these systems other than "waves hands accretion, waves hands outflows, we're all just waving our hands" -- like I don't think people even know if this is applicable to Class 0/I sources to begin with (LoooooooooL). Maybe ~*~veiling~*~ saves the day (also lol).
-
 So I think maybe running with 2 edge cases is the smartest way around this. 
+Update: Astrochemistry queen says UV barely penetrates envelope - Lyman alpha not even mentioned as a thing for protostellar envelopes. see [review paper](https://www.pnas.org/content/pnas/103/33/12249.full.pdf)
 
 
 ## X-ray contribution
