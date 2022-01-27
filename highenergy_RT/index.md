@@ -24,9 +24,14 @@ Benefits: This will pretty much give you the maximum UV field penetration depth 
 I prefer this phenomenology because as B+B 2011 admits, their iterative photodissociation stuff isn't even self-consistent/fully correct anyway and we can quickly see if this applies to the problem at all. Because if the scattering layer occurs deep beneath where UV can't even go to begin with ( which may be the case here) then we don't even gotta worry about it at all. (Also other people just kinda admit on whiffing on the whole finding H layer to begin with and make even more egregious estimates, so I think we're fine). 
 
 So I think maybe running with 2 edge cases is the smartest way around this. 
-Update: Astrochemistry queen says UV barely penetrates envelope - Lyman alpha not even mentioned as a thing for protostellar envelopes. see [review paper](https://www.pnas.org/content/pnas/103/33/12249.full.pdf) - actually X-rays will be much more important.
+Update: Astrochemistry queen says UV barely penetrates envelope - Lyman alpha not even mentioned as a thing for protostellar envelopes. see [review paper](https://www.pnas.org/content/pnas/103/33/12249.full.pdf) - which suggests that actually X-rays will be much more important.
 
-Side note: We need to make sure our X-ray input makes sense for protostellar sources.
+Update 2: The envelope self-shielding rate against H2 dissociation is insanely high for UV photons, basically fshield is 10**(-3) at most, so the dissociation rate tends to 0 for UV stuff.
+
+In terms of heating, it's probably more important to consider heating from X-rays ionizing stuff (does chemical code do this?)
+
+
+
 
 
 ## X-ray contribution
