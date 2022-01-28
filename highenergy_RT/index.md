@@ -29,6 +29,7 @@ Update: Astrochemistry queen says UV barely penetrates envelope - Lyman alpha no
 Update 2: The envelope self-shielding rate against H2 dissociation is insanely high for UV photons, basically fshield is 10**(-3) at most, so the dissociation rate tends to 0 for UV stuff.
 
 In terms of heating, it's probably more important to consider heating from X-rays ionizing stuff (does chemical code do this?)
+This chemical code does not. That is one of the features that was added to the Du code (https://iopscience.iop.org/article/10.1088/0004-637X/792/1/2/pdf)
 
 
 
