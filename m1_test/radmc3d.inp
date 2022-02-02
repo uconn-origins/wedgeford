@@ -1,5 +1,4 @@
-istar_sphere = 0
-nphot = 4000000
-scattering_mode_max = 1
+nphot = 5000000
+scattering_mode_max = 4
 iranfreqmode = 1
-modified_random_walk = 1
+modified_random_walk = 1 

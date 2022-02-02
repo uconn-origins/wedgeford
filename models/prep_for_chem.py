@@ -2,24 +2,28 @@
 import numpy as np
 import os
 from pylab import *
+from models.units import *
 
-Msun = 1.9891e33 # g
-Rsun = 69.6e9 #cm
-Lsun  = 3.8525e33 #erg/s
-AU = 1.49598e13 #cm
-yr = 3.14e7 #seconds
-cmtokm = 10**(-5) #converts cm to km
-R_mu = 36149835 # (R/mu) for 2.4 g/mol in PPD
-Gconv = 6.6743e-8 # cgs
-S0conv = (Msun/(AU**2)) #S0cgs = S0code*S0conv
-sigsb = 5.67e-5 #Stefan Boltzmann constant
-c = 2.99792458e10 # speed of light
-mu = 2.36
-h = 6.6260755e-27 #planck
-mh = 1.67e-24 # mass of hydrogen cgs
-Habing = 1.83590e+08  # Photons/cm^2/s between 930-2000
-G0 = 2.7e-3 # erg/cm^2/s^-1
+#need to rewrite to use radmc3d output class****
 
+def make_rz_H(model): #make a logarithmically spaced cylindrical grid
+        zmin = 1e-10
+        new_r = np.logspace(np.log10(model.grid['min'][0]), np.log10(model.grid['max'][0]), model.grid['N'][0])
+        zf_norm = np.append(zmin, np.logspace(-4,0,50)) #faces of the z-cells
+        zc_norm = 0.5*(zf_norm[1:] + zf_norm[:-1]) #50 points in the Z direction
+        if return_faces == True:
+            R,Z = np.meshgrid(new_r,zf_norm) #returns the bin edges at the radius, for summing up columns
+        else:
+            R,Z = np.meshgrid(new_r,zc_norm)
+        Z *= R/np.tan(np.radians(self.m.env['theta_min']+15))
+        return R,Z
+    
+def make_quadrant(model,quantity_3d,fill_value=0,order='F'): # to be used with the radmc 3d values
+        quantity_2d = quantity_3d[:,:,0] # phi=0 plane
+        r_cyl,z_cyl = model.make_rz()
+        r_new, z_new = model.make_rz_H()
+        quantity_2d_interp = griddata((r_cyl[:,:,0].flatten(),z_cyl[:,:,0].flatten()), quantity_2d.ravel(order=order), (r_new,z_new),fill_value=fill_value,method='linear')
+        return quantity_2d_interp
 
 
 def write_out(model,outname='model',ndust=2): #write the .out file for RT and chemistry, pass the model class into this

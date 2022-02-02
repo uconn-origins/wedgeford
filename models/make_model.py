@@ -3,26 +3,10 @@ import radmc3dPy as rpy
 import numpy as np
 import os
 from scipy.interpolate import griddata
-# units and conversions
-Msun = 1.9891e33 # g
-Rsun = 69.6e9 #cm
-Lsun  = 3.8525e33 #erg/s
-AU = 1.49598e13 #cm
-yr = 3.14e7 #seconds
-pc = 3.086e18 #cm
-cmtokm = 10**(-5) #converts cm to km
-R_mu = 36149835 # (R/mu) for 2.4 g/mol in PPD
-Gconv = 6.6743e-8 # cgs
-S0conv = (Msun/(AU**2)) #S0cgs = S0code*S0conv
-sigsb = 5.67e-5 #Stefan Boltzmann constant
-c = 2.99792458e10 # speed of light
-mu = 2.36
-h = 6.6260755e-27 #planck
-mh = 1.67e-24 # mass of hydrogen cgs
-Habing = 1.83590e+08  # Photons/cm^2/s between 930-2000
-G0 = 2.7e-3 # erg/cm^2/s^-1
+from models.units import *
 
 parent_dir = os.getcwd()
+models_dir = parent_dir+'/models/'
 
 class model:
     def __init__(self,stellar_params, disk_params, envelope_params,grid_params, dust_params, RT_params, outdir = '/m1_test/'):
@@ -35,6 +19,7 @@ class model:
         self.coords = [0,0,0]
         self.rhomin = np.log10(self.env['rho_amb'])
         self.rhomax = -11
+        
         try:
             os.mkdir(self.outdir)
         except:
@@ -53,9 +38,78 @@ class model:
         self.theta = (self.coords[1][1:] + self.coords[1][:-1]) / 2.
         self.phi = (self.coords[2][1:] + self.coords[2][:-1]) / 2.
         
+    def write_star(self):
+        params = rpy.params.radmc3dPar()
+        if os.path.exists(self.outdir+ 'problem_params.inp') != True:
+            params.loadDefaults() #loads default parameter dictionary
+        else:
+            params.readPar()
+        if os.getcwd() != models_dir:
+            os.chdir(models_dir)
+        rad_data = rpy.radsources.radmc3dRadSources()
+        rad_data.readStarsinp('stars_og.inp') #reads in a template stars.inp file
+        params.ppar['mstar'] = [self.star['Ms']*Msun] # sets the paramaters to the ones passed to the model
+        params.ppar['rstar']= [self.star['Rs']*Rsun]
+        params.ppar['tstar'] = [self.star['Ts']*1.0]
+        rad_data.pstar = params.ppar['pstar']
+        rad_data.tstar = params.ppar['tstar']
+        if os.getcwd() != self.outdir:
+            os.chdir(self.outdir)
+        rad_data.writeStarsinp(ppar=params.ppar) #writes a stars.inp in the new directory
+        os.chdir(parent_dir)
+        
+    def calc_ISRF(self,lam=None,gnorm=1,write=True):
+        from scipy.interpolate import interp1d
+        if os.path.exists('wavelength_micron.inp') != True:
+                self.write_wavelength()
+        if os.getcwd() != self.outdir:
+            os.chdir(self.outdir)
+        grid_data = rpy.reggrid.radmc3dGrid()
+        grid_data.readWavelengthGrid()
+        #goal is to write the ISRF onto the same wavelength grid as the stellar source
+        if lam == None:
+            lam = grid_data.wav
+            nu = grid_data.freq
+        else:
+            nu = c/(lam*1e-4)
+        os.chdir(models_dir)
+        ### works right now with the current format of the ISRF file
+        ### if you want a different ISRF as the basis, should rewrite for other scalings
+        fname='ISRF.csv'
+        ISRF = np.loadtxt('ISRF.csv',skiprows=1,delimiter=',')
+        lami = ISRF[:,0]#micron
+        flam = ISRF[:,1]/(4*pi) #ergs/cm2/s/micron/str
+        fnu_ = flam*(lami*(lami*1e-4))/c #conversion to ergs/cms2/s/Hz/str
+        Fnu = interp1d(lami, fnu_,fill_value='extrapolate')
+        fnu = np.clip(Fnu(lam),a_min=np.amin(fnu_)*1e-2,a_max=None)
+        isrf_index = (lam > 0.0912) & (lam < 2.4) #comparing G0
+        Ftot = np.trapz(fnu[isrf_index][::-1],x=nu[isrf_index][::-1])
+        norm = gnorm*G0/Ftot
+        fnu *= norm #scales ISRF by how many G0s you want.
+        if write == True:
+            with open(self.outdir+'external_source.inp','w') as f:
+                f.write('2 \n')
+                f.write(str(len(lam))+ '\n')
+                f.write('\n')
+                lam.tofile(f, sep='\n', format="%13.6e")
+                f.write('\n')
+                f.write('\n')
+                fnu.tofile(f, sep='\n', format="%13.6e")
+        os.chdir(parent_dir)
+        return lam,fnu
+        
     def T(self,R):
         return self.star['Ts']*np.sqrt((self.star['Rs']*Rsun)/(R*AU))
     
+    def Rsub(self): #dust sublimation radius at T = 1500 K
+        Tsub = 1500.
+        T_R = self.T(R=self.r)
+        try:
+            rsub = np.amin(self.r[T_R>=Tsub])
+        except:
+            rsub = 0.0
+        return rsub
+        
     def cs(self,R):
         return 5862*np.sqrt(self.T(1))*(R**(-0.25))
     
@@ -124,7 +178,6 @@ class model:
     def plot_slice(self,rho,plot_params={'levels':np.arange(-27,-11,1)}):
         R_CYL,Z_CYL = self.make_rz()
         contourf(R_CYL[:,:,0],Z_CYL[:,:,0], np.log10(rho[:,:,0]),**plot_params)
-        #colorbar(location='top')
         
     def plot_components(self,fluid=0):
         f,ax= subplots(1,3,constrained_layout=True)
@@ -200,25 +253,26 @@ class model:
             return rho_vol*self.env['d2g']
         else:
             return rho_vol*0
-        
-    
+           
     def rho_embedded(self,fluid=0):
         rho_d = self.rho_disk(fluid=fluid)
-        if fluid < 2:
+        if fluid < 2: # for gas and small dust
             rho_e = self.rho_env(fluid=fluid)
-        else:
+        else: # for large dust only
             rho_e = np.zeros_like(rho_d)
         floor = self.env['rho_amb'] 
         factor = min(fluid,1)*self.env['d2g']
         if factor != 0: 
             floor *= factor
-        if fluid < 2:
+        if fluid < 2: #for gas and small dust
             rho_both = np.clip(rho_d + rho_e,a_min=floor,a_max=None)
-        else:
+        else: # for large dust only
             rho_both = rho_d + rho_e
+        if fluid != 0: #no dust inside sublimation radius
+            R,THETA,PHI = self.make_grid()
+            rsub = self.Rsub()
+            rho_both[R <= rsub] = 10**(self.rhomin - 6)
         return rho_both
-    
-    
     
     def write_grid(self):
         iformat = 1
@@ -238,7 +292,6 @@ class model:
                 f.write('\n')
         f.close()
 
-    
     def write_dust_density(self):
         small_dust = self.rho_embedded(fluid=1)
         large_dust = self.rho_embedded(fluid=2)
@@ -254,24 +307,20 @@ class model:
                 f.write('\n')
         f.close()
         
-        
-    def write_wavelength(self):
-        lam1     = 0.1e0
-        lam2     = 7.0e0
-        lam3     = 25.e0
-        lam4     = 1.0e4
-        n12      = 20
-        n23      = 100
-        n34      = 30
-        lam12    = np.logspace(np.log10(lam1),np.log10(lam2),n12,endpoint=False)
-        lam23    = np.logspace(np.log10(lam2),np.log10(lam3),n23,endpoint=False)
-        lam34    = np.logspace(np.log10(lam3),np.log10(lam4),n34,endpoint=True)
-        lam      = np.concatenate([lam12,lam23,lam34])
-        nlam     = lam.size
-        with open(self.outdir + 'wavelength_micron.inp','w+') as f:
-            f.write('%d\n'%(nlam))
-            for value in lam:
-                f.write('%13.6e\n'%(value))
+    def write_wavelength(self,fname='',lam=None):
+        if os.getcwd() != models_dir:
+            os.chdir(models_dir)
+        grid_data = rpy.reggrid.radmc3dGrid()
+        grid_data.readWavelengthGrid()
+        if os.getcwd() != self.outdir:
+            os.chdir(self.outdir)
+        if lam != None:
+            grid_data.wav = lam
+            grid_data.nwav = grid_data.wav.shape[0]
+            grid_data.freq = c / grid_data.wav * 1e4
+            grid_data.nfreq = grid_data.nwav
+        grid_data.writeWavelengthGrid(fname=fname)
+        os.chdir(parent_dir)
         
         
     def write_opacities(self): # note to self: figure out the number of dust species inputs and parameters
@@ -295,74 +344,49 @@ class model:
             f.write('iranfreqmode = 1\n')
             f.write('modified_random_walk = 1 \n')
     
-    def RT_Tdust(self):
-        os.chdir(self.outdir)
-        file_list = ['amr_grid.inp', 'dust_density.inp','radmc3d.inp','wavelength_micron.inp','dustopac.inp']
-        func_list = [self.write_grid, self.write_dust_density, self.write_main, self.write_wavelength,self.write_opacities]
-        for file, func in zip(file_list,func_list):
-            if os.path.exists(file) != True:
-                func()
-        try:
-            os.system('radmc3d mctherm')
-        except:
-            print('something went wrong with radmc3d')
-        return 0
+    #def RT_Tdust(self):
+        #os.chdir(self.outdir)
+        #file_list = ['amr_grid.inp', 'dust_density.inp','radmc3d.inp','wavelength_micron.inp','dustopac.inp','stars.inp']
+        #func_list = [self.write_grid, self.write_dust_density, self.write_main, self.write_wavelength,self.write_opacities,self.write_star]
+        #for file, func in zip(file_list,func_list):
+         #   if os.path.exists(file) != True:
+                #func()
+        #try:
+            #os.system('radmc3d mctherm')
+        #except:
+            #print('something went wrong')
+        #return 0
     
-    def plot_RT(self):
-        if os.getcwd() != self.outdir:
-            os.chdir(self.outdir)
-        data = rpy.analyze.readData()
-        data_r = data.grid.x/AU
-        data_th = data.grid.y
-        R,TH = np.meshgrid(data_r,data_th)
-        X = R*np.sin(TH)
-        Z = R*np.cos(TH)
-        f,ax = subplots(1,2,constrained_layout=True)
-        f.set_size_inches(9,4.5)
-        c = ax[0].contourf(X, Z, np.log10(data.rhodust[:,:,0,0].T),levels=np.arange(self.rhomin,self.rhomax,1))
-        ax[0].set_xlabel('r [AU]')
-        ax[0].set_ylabel('z [AU]')
-        ax[0].set_title('Input Model Density',fontsize=12)
-        cb = colorbar(c,ax=ax[0],location='bottom')
-        cb.set_label(r'$\rho$ [$g/cm^{-3}$]')
-        
-        c2 = ax[1].contourf(X, Z, data.dusttemp[:,:,0,0].T,levels=[0,10,25,50,100,200],cmap='plasma')
-        ax[1].contour(X, Z, np.log10(data.rhodust[:,:,0,1].T),levels=np.arange(-19,-11,1),colors='white')
-        ax[1].set_xlabel('r [AU]')
-        ax[1].set_title('Dust Temperature',fontsize=12)
-        cb2 = colorbar(c2,ax=ax[1],location='bottom')
-        cb2.set_label('T [K]')
+    #def get_Tdust(self,fluid=1):
+       # if os.getcwd() != self.outdir:
+       #     os.chdir(self.outdir)
+       # data = rpy.analyze.readData()
+       # return data.dusttemp[:,:,:,fluid-1]
     
-    def get_Tdust(self,fluid=1):
-        if os.getcwd() != self.outdir:
-            os.chdir(self.outdir)
-        data = rpy.analyze.readData()
-        return data.dusttemp[:,:,:,fluid-1]
+    #def get_rhodust(self,fluid=1):
+       # if os.getcwd() != self.outdir:
+       #     os.chdir(self.outdir)
+       # data = rpy.analyze.readData()
+       # return data.rhodust[:,:,:,fluid-1]
     
-    def get_rhodust(self,fluid=1):
-        if os.getcwd() != self.outdir:
-            os.chdir(self.outdir)
-        data = rpy.analyze.readData()
-        return data.rhodust[:,:,:,fluid-1]
+    #def make_rz_H(self,return_faces = False): #make a logarithmically spaced cylindrical grid
+        #zmin = 1e-10
+        #new_r = np.logspace(np.log10(self.grid['min'][0]), np.log10(self.grid['max'][0]), self.grid['N'][0])
+        #zf_norm = np.append(zmin, np.logspace(-4,0,50)) #faces of the z-cells
+        #zc_norm = 0.5*(zf_norm[1:] + zf_norm[:-1]) #50 points in the Z direction
+        #if return_faces == True:
+        #    R,Z = np.meshgrid(new_r,zf_norm) #returns the bin edges at the radius, for summing up columns
+        #else:
+        #    R,Z = np.meshgrid(new_r,zc_norm)
+        #Z *= R/np.tan(np.radians(self.env['theta_min']+15))
+        #return R,Z
     
-    def make_rz_H(self,return_faces = False): #make a logarithmically spaced cylindrical grid
-        zmin = 1e-10
-        new_r = np.logspace(np.log10(self.grid['min'][0]), np.log10(self.grid['max'][0]), self.grid['N'][0])
-        zf_norm = np.append(zmin, np.logspace(-4,0,50)) #faces of the z-cells
-        zc_norm = 0.5*(zf_norm[1:] + zf_norm[:-1]) #50 points in the Z direction
-        if return_faces == True:
-            R,Z = np.meshgrid(new_r,zf_norm) #returns the bin edges at the radius, for summing up columns
-        else:
-            R,Z = np.meshgrid(new_r,zc_norm)
-        Z *= R/np.tan(np.radians(self.env['theta_min']+15))
-        return R,Z
-    
-    def make_quadrant(self,quantity_3d,fill_value=0,order='F'): # to be used with the radmc 3d values
-        quantity_2d = quantity_3d[:,:,0] # phi=0 plane
-        r_cyl,z_cyl = self.make_rz()
-        r_new, z_new = self.make_rz_H()
-        quantity_2d_interp = griddata((r_cyl[:,:,0].flatten(),z_cyl[:,:,0].flatten()), quantity_2d.ravel(order=order), (r_new,z_new),fill_value=fill_value,method='linear')
-        return quantity_2d_interp
+    #def make_quadrant(self,quantity_3d,fill_value=0,order='F'): # to be used with the radmc 3d values
+        #quantity_2d = quantity_3d[:,:,0] # phi=0 plane
+        #r_cyl,z_cyl = self.make_rz()
+        #r_new, z_new = self.make_rz_H()
+        #quantity_2d_interp = griddata((r_cyl[:,:,0].flatten(),z_cyl[:,:,0].flatten()), quantity_2d.ravel(order=order), (r_new,z_new),fill_value=fill_value,method='linear')
+        #return quantity_2d_interp
     
     
     

@@ -1,13 +1,15 @@
 from matplotlib import rc
 from matplotlib import cm
 from models.make_model import *
+from models.highenergy_rad import *
+from models.units import *
 
 rc('font',**{'family':'serif','serif':['Times']})
 rc('text', usetex=False)
 rc('mathtext', fontset = 'stix')
 rc('axes', linewidth = 1.25)
 
-SMALL_SIZE = 8
+SMALL_SIZE = 9
 MEDIUM_SIZE = 10
 BIGGER_SIZE = 11
 BIGGEST_SIZE = 12

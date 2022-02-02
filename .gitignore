@@ -12,3 +12,5 @@ m1_test/dust_density.inp
 *.inp
 m1_test_rt/mean_intensity.out
 m1_test_rt/dust_temperature.dat
+.DS_Store
+.DS_Store
