@@ -15,6 +15,7 @@ class model:
         self.env = envelope_params
         self.grid = grid_params
         self.dust = dust_params
+        self.rad = RT_params
         self.outdir = parent_dir+outdir
         self.coords = [0,0,0]
         self.rhomin = np.log10(self.env['rho_amb'])
@@ -38,65 +39,18 @@ class model:
         self.theta = (self.coords[1][1:] + self.coords[1][:-1]) / 2.
         self.phi = (self.coords[2][1:] + self.coords[2][:-1]) / 2.
         
-    def write_star(self):
+        
         params = rpy.params.radmc3dPar()
         if os.path.exists(self.outdir+ 'problem_params.inp') != True:
             params.loadDefaults() #loads default parameter dictionary
         else:
             params.readPar()
-        if os.getcwd() != models_dir:
-            os.chdir(models_dir)
-        rad_data = rpy.radsources.radmc3dRadSources()
-        rad_data.readStarsinp('stars_og.inp') #reads in a template stars.inp file
         params.ppar['mstar'] = [self.star['Ms']*Msun] # sets the paramaters to the ones passed to the model
         params.ppar['rstar']= [self.star['Rs']*Rsun]
         params.ppar['tstar'] = [self.star['Ts']*1.0]
-        rad_data.pstar = params.ppar['pstar']
-        rad_data.tstar = params.ppar['tstar']
-        if os.getcwd() != self.outdir:
-            os.chdir(self.outdir)
-        rad_data.writeStarsinp(ppar=params.ppar) #writes a stars.inp in the new directory
-        os.chdir(parent_dir)
-        
-    def calc_ISRF(self,lam=None,gnorm=1,write=True):
-        from scipy.interpolate import interp1d
-        if os.path.exists('wavelength_micron.inp') != True:
-                self.write_wavelength()
-        if os.getcwd() != self.outdir:
-            os.chdir(self.outdir)
-        grid_data = rpy.reggrid.radmc3dGrid()
-        grid_data.readWavelengthGrid()
-        #goal is to write the ISRF onto the same wavelength grid as the stellar source
-        if lam == None:
-            lam = grid_data.wav
-            nu = grid_data.freq
-        else:
-            nu = c/(lam*1e-4)
-        os.chdir(models_dir)
-        ### works right now with the current format of the ISRF file
-        ### if you want a different ISRF as the basis, should rewrite for other scalings
-        fname='ISRF.csv'
-        ISRF = np.loadtxt('ISRF.csv',skiprows=1,delimiter=',')
-        lami = ISRF[:,0]#micron
-        flam = ISRF[:,1]/(4*pi) #ergs/cm2/s/micron/str
-        fnu_ = flam*(lami*(lami*1e-4))/c #conversion to ergs/cms2/s/Hz/str
-        Fnu = interp1d(lami, fnu_,fill_value='extrapolate')
-        fnu = np.clip(Fnu(lam),a_min=np.amin(fnu_)*1e-2,a_max=None)
-        isrf_index = (lam > 0.0912) & (lam < 2.4) #comparing G0
-        Ftot = np.trapz(fnu[isrf_index][::-1],x=nu[isrf_index][::-1])
-        norm = gnorm*G0/Ftot
-        fnu *= norm #scales ISRF by how many G0s you want.
-        if write == True:
-            with open(self.outdir+'external_source.inp','w') as f:
-                f.write('2 \n')
-                f.write(str(len(lam))+ '\n')
-                f.write('\n')
-                lam.tofile(f, sep='\n', format="%13.6e")
-                f.write('\n')
-                f.write('\n')
-                fnu.tofile(f, sep='\n', format="%13.6e")
-        os.chdir(parent_dir)
-        return lam,fnu
+        params.ppar['accrate'] = self.star['accrate']*Msun/yr
+        params.ppar['starsurffrac'] = self.star['f']
+        self.radmcpar = params.ppar
         
     def T(self,R):
         return self.star['Ts']*np.sqrt((self.star['Rs']*Rsun)/(R*AU))
@@ -124,10 +78,14 @@ class model:
         FI = self.disk['fi'][fluid-1]
         if fluid == 0:
             return H_gas(R)
-        elif fluid == 1 and H0 > H_gas(R0): #if H of small dust > H of gas, go with Hgas
-            return H_gas(R)
         else:
-            return H0*(R/R0)**(1+FI)
+            return H_gas(R)*H0
+        #elif fluid == 1 and H0 == None: 
+            #return H_gas(R)
+        #elif fluid > 0 and H0 > H_gas(R0):
+            #return H_gas(R)
+        #else:
+            #return H0*(R/R0)**(1+FI)
         
     def make_grid(self):
         return np.meshgrid(self.r,self.theta,self.phi)
@@ -147,112 +105,188 @@ class model:
         frac = [1.-self.disk['Mfrac'][0]-self.disk['Mfrac'][1],self.disk['Mfrac'][0],self.disk['Mfrac'][1]]
         Mtot = self.disk['Mdisk']*frac[fluid]*Msun #assigns mass of disk component
         def sig_r(R):
-            sig = (R/R0)**(p)*np.exp(-R/Rd)
+            sig = (R/R0)**(p)*np.exp(-R/Rd)*np.exp(-(R/Rout)**2)
             sig[R<R0] = 0.
             return sig
         def sig_int(R):
             if len(np.shape(R)) < 2:
                 sig = sig_r(R)
-                sig[R>Rout] = 0.
                 return np.sum(sig*(R*AU)*(np.gradient(R))*AU)
             else:
                 r = np.ravel(np.unique(R))
                 sig = sig_r(r)
-                sig[r>Rout] = 0.
                 return np.sum(sig*(r*AU)*np.gradient(r)*AU)
-        sig_0 = (Mtot)/(2.*pi*sig_int(R))
+        sig_0 = (Mtot)/(2.*pi*sig_int(R=self.r))
         return sig_0*sig_r(R)
     
     def rho_midplane(self,R,fluid=0):
-        rho_mid = self.sig_profile(R,fluid=fluid)/(sqrt(pi*2.)*self.H(R,fluid=fluid)*AU)
-        self.rhomax = np.log10(np.amax(rho_mid))
+        rho_mid = np.clip(self.sig_profile(R,fluid=fluid)/(sqrt(pi*2.)*self.H(R,fluid=fluid)*AU),a_min=self.env['rho_amb'],a_max=None)
         return rho_mid
+    
+    def rho_disk_profile(self,r,z,fluid=0):
+        rho_mid = self.rho_midplane(r,fluid=fluid)
+        h_mid = self.H(r,fluid=fluid)
+        rho_at_pt = rho_mid*np.exp(-0.5*(z/h_mid)**2)
+        return rho_at_pt
     
     def rho_disk(self,fluid=0):
         R_CYL,Z_CYL = self.make_rz()
         rho_mid = self.rho_midplane(R_CYL,fluid=fluid)
+        self.rhomax = np.log10(np.amax(rho_mid))
         h_mid = self.H(R_CYL,fluid=fluid)
         rho_vol = rho_mid*np.exp(-0.5*(Z_CYL/h_mid)**2)
-        return rho_vol
-    
-    def plot_slice(self,rho,plot_params={'levels':np.arange(-27,-11,1)}):
-        R_CYL,Z_CYL = self.make_rz()
-        contourf(R_CYL[:,:,0],Z_CYL[:,:,0], np.log10(rho[:,:,0]),**plot_params)
+        return np.clip(rho_vol,a_min=self.env['rho_amb'],a_max=None)
         
-    def plot_components(self,fluid=0):
-        f,ax= subplots(1,3,constrained_layout=True)
-        fluids = ['gas','small dust', 'large dust']
-        f.suptitle(fluids[fluid])
-        f.set_size_inches(9,3)
-        components = {'Disk': self.rho_disk(fluid=fluid),'Envelope': self.rho_env(fluid=fluid), 'Disk + Envelope': self.rho_embedded(fluid=fluid)}
-        for a,c in zip(ax, components.keys()):
-            sca(a)
-            self.plot_slice(components[c],{'levels':np.arange(self.rhomin,self.rhomax,1)})
-            a.set_title(c,fontsize=14)
-            a.set_xlim(self.grid['min'][0],self.grid['max'][0])
-            if c == 'Disk':
-                for j in np.arange(1,4):
-                    a.plot(self.r, self.H(self.r)*j,color='C0',lw=1,label=str(j)+'H') #plot disk scale heights
-                    a.legend()
-            elif c == "Envelope":
-                for j in np.linspace(np.radians(self.env['theta_min']),pi/2.,8):
-                    r,th,rho = self.rho_stream(th0=j)
-                    l = a.plot(r*np.sin(th),r*np.cos(th),color='C0',ls='dashed',lw=1) #plot streamlines
-                a.legend(l,['streamlines'])
-            a.set_ylim(a.get_xlim())
-        colorbar(ax=ax)
-        ax[1].set_xlabel('R [AU]')
-        ax[0].set_ylabel('Z [AU]')
-        
-    def rho_stream(self, th0=pi/2.):
+    def stream(self, th0=pi/2.,p0=0,shock=True): #calculates the streamline position and properties (density and velocity)
+        thstart = np.radians(self.env['theta_min'])
         th = self.theta[self.theta>=th0]
         Rc = self.env['Rc']
         Min = self.env['Min']
+        rho0 = self.env['rho_0']
         Rin = Rc*np.sin(np.radians(self.env['theta_min']))**2 #inner landing radius of the stream
         Mfac = np.sqrt(1. - sqrt(Rin/Rc)) #adjusts the total mass to fit within the chosen streams
+        streamline = {}
+
+        vwr=0.
+        vwphi = 0.
+        vwth = 0.
+
+        v_r = np.array([])
+        v_phi = np.array([])
+        v_theta = np.array([])
+
         if th0 != pi/2. and th0 != 0.:
-            r = Rc*(np.sin(th0)**2)/(1. - (np.cos(th)/np.cos(th0)))
+            cosa = (np.cos(th)/np.cos(th0))
+            r = Rc*(np.sin(th0)**2)/np.clip((1. - cosa),a_min=1e-18,a_max=None)
             r[0] = self.env['Rmax']
             r[-1] = Rc*(np.sin(th0)**2)
         elif th0 <= 1e-5:
-            r = np.ones_like(th)*1
+            r = np.ones_like(th)*self.r[0]
         else:
             r= np.ones_like(th)*Rc
+
         om = np.sqrt(Gconv*self.star['Ms']*Msun*(r*AU)**3)
         t1 = ((Min/Mfac)*Msun/yr)/(8*pi*om)
         t2 = np.sqrt(1+(np.cos(th)/np.cos(th0)))
         t3 = ((np.cos(th)/(2*np.cos(th0))) + (Rc/r)*(np.cos(th0)**2))
         rho1 = t1/(t2*t3)
-        return r, th, rho1
+
+        cosa = np.cos(th)/np.cos(th0)
+        sina = np.sqrt(1-cosa**2)
+        tanphi = (sina/cosa)/np.sin(th0)
+        delphi = np.arctan(tanphi)
+        ph = p0+delphi
+
+        vkep = self.vk(r)
+        if th0 <= thstart: # outside of opening angle
+            v_r = np.append(v_r,vwr*np.ones_like(r))
+            v_phi = np.append(v_phi,vwphi*np.ones_like(r))
+            v_theta = np.append(v_theta,vwth*np.ones_like(r))
+            rho1 = rho0*r**(-self.env['exf'])
+        else:
+            v_r = np.append(v_r, -vkep*np.sqrt(1+cosa))
+            v_phi = np.append(v_phi,vkep*np.sqrt(1-cosa)*(np.sin(th0)/np.sin(th)))
+            v_theta = np.append(v_theta,vkep*np.sqrt((1+cosa))*(np.cos(th0)-np.cos(th))/np.sin(th))
+
+        if shock == True and th0 > thstart: 
+            rhod = self.rho_disk_profile(r=r*np.sin(th),z=r*np.cos(th))
+            Tstream = np.zeros_like(r)
+            rho_m = 0.5*(rho1+rhod)
+            surface = (rhod*rho_m)/(rho1**2) #calculate where the envelope should hit the disk surface to form a shock
+            if np.amin(surface) < 1.0: 
+                s = np.amax(np.where(surface <= 1.))
+                rupper = r[s] #top of shock surface
+                vs = (rho1[s]/(2*rho_m[s]))*np.sqrt(v_r**2 + v_theta**2)[s]
+                cs0 = self.cs(rupper)
+                Ts = (3/16.)*mu*mh*(vs)**2 
+                rhos = 2*rho_m[s]
+                Q0 = 1e-31*(rhos/(mu*mh))**2 * Ts**(1.5) #optically thin cooling limit for CO
+                s0 = (1./AU)*(2.5*rhos*vs**2*((vs/4) - cs0))/Q0 #cooling decay coefficient = amt of cooling/peak cooling
+                Q = Q0*np.exp(-(r[s:]/s0)) #cooling over rest of streamline
+                v_cool = (Q-Q0*s0*AU)/(2.5*rhos*vs**2) + (vs/4) # deceleration as energy is radiated away
+                rho_cool = rhos*vs/v_cool #compression
+                rho1[s:] = np.clip(rho_cool - rhod[s:],a_min=self.env['rho_amb'],a_max=None)
+                T_cool = (mu*mh/kb)*rhos*(vs**2)/(rho1[s:] + rhod[s:]) 
+                v_theta[s:] *= (v_cool/vs)
+                v_r[s:] *= (v_cool/vs)
+                Tstream[s:] = T_cool
+
+            streamline['Tg'] = Tstream
+        streamline['path'] = [r,th,ph]
+        streamline['rho'] = rho1
+        streamline['v'] = [v_r,v_theta,v_phi]
+        return streamline
     
     
     def rho_env(self,fluid=0):
+        shock = self.env['shock']
         thstart = np.radians(self.env['theta_min'])
         rho0 = self.env['rho_0']
         R = np.array([])
         TH = np.array([])
         rho_tot = np.array([])
         for j in self.theta:
-            r, th, rho1 = self.rho_stream(th0=j)
-            R = np.append(R,r)
-            TH = np.append(TH,th)
-            if j <= thstart:
-                rho_tot = np.append(rho_tot,rho1*0+rho0*r**(-self.env['exf']))
-            else:
-                rho_tot = np.append(rho_tot,rho1)
-        # define grid.
+            streamline = self.stream(th0=j,shock=shock)
+            R = np.append(R,streamline['path'][0])
+            TH = np.append(TH,streamline['path'][1])
+            rho_tot = np.append(rho_tot,streamline['rho'])
         R_CYL = R*np.sin(TH)
         Z_CYL = R*np.cos(TH)
         r_cyl, z_cyl = self.make_rz()
         RHO = griddata((R_CYL, Z_CYL), rho_tot, (r_cyl[:,:,0],z_cyl[:,:,0]), method='nearest')
         RHO = np.reshape(RHO,(np.shape(RHO)[0],np.shape(RHO)[1],1))
-        rho_vol = np.repeat(RHO,len(self.phi),axis=2)
+        rho_vol = np.repeat(RHO,len(self.phi),axis=2) #assumes axisymmetry
         if fluid == 0:
-            return rho_vol
+            return rho_vol + self.env['rho_amb']
         elif fluid == 1:
-            return rho_vol*self.env['d2g']
+            return (rho_vol + self.env['rho_amb'])*self.env['d2g']
         else:
-            return rho_vol*0
+            return rho_vol*0 + self.env['rho_amb']
+        
+    def v_env(self):
+        shock = self.env['shock']
+        thstart = np.radians(self.env['theta_min'])
+        rho0 = self.env['rho_0']
+        R = np.array([])
+        TH = np.array([])
+        V = {}
+        vr = np.array([])
+        vth = np.array([])
+        vphi = np.array([])
+        for j in self.theta:
+            streamline = self.stream(th0=j,shock=shock)
+            R = np.append(R,streamline['path'][0])
+            TH = np.append(TH,streamline['path'][1])
+            vr = np.append(vr,streamline['v'][0])
+            vth = np.append(vth,streamline['v'][1])
+            vphi = np.append(vphi,streamline['v'][2])
+        R_CYL = R*np.sin(TH)
+        Z_CYL = R*np.cos(TH)
+        r_cyl, z_cyl = self.make_rz()
+        for stream,key in zip([vr,vth,vphi],['r','theta','phi']):
+            V[key] = griddata((R_CYL, Z_CYL), stream, (r_cyl[:,:,0],z_cyl[:,:,0]), method='nearest')
+            V[key] = np.reshape(V[key],(np.shape(V[key])[0],np.shape(V[key])[1],1))
+        return V
+    
+    def v_disk(self):
+        R_CYL,Z_CYL = self.make_rz()
+        R = np.sqrt(R_CYL**2 + Z_CYL**2)
+        V = {}
+        V['phi'] = self.vk(R_CYL)
+        vin = -self.star['accrate']/(2*pi*R_CYL*np.sqrt(2*pi)*self.H(R_CYL)*AU*self.rho_disk(fluid=0))
+        V['r'] = vin*R_CYL/R
+        V['theta'] = vin*Z_CYL/R
+        return V
+    
+    def v_embedded(self):
+        V = {}
+        vdisk = self.v_disk()
+        venv = self.v_env()
+        for key in ['r','theta','phi']:
+            V[key] = (self.rho_disk(fluid=0)*vdisk[key] + self.rho_env(fluid=0)*venv[key])/self.rho_embedded(fluid=0)
+        return V
+            
+        
            
     def rho_embedded(self,fluid=0):
         rho_d = self.rho_disk(fluid=fluid)
@@ -271,122 +305,22 @@ class model:
         if fluid != 0: #no dust inside sublimation radius
             R,THETA,PHI = self.make_grid()
             rsub = self.Rsub()
-            rho_both[R <= rsub] = 10**(self.rhomin - 6)
+            rho_both[R <= rsub] = floor
         return rho_both
     
-    def write_grid(self):
-        iformat = 1
-        grid_style = 0 # for "regular grid"
-        coordsystem = 101 # between 1 and 200 for a spherical grid
-        gridinfo = 0 
-        incl_x, incl_y, incl_z = [1,1,1] # for a 3 dimensional grid
-        nx,ny,nz = self.grid['N']
-        r_edges = self.coords[0]*AU
-        th_edges = self.coords[1]
-        phi_edges = self.coords[2]
-        header = str(iformat) + '\n' + str(grid_style) + '\n' + str(coordsystem) + '\n' + str(gridinfo) + '\n' + str(incl_x) + '\t' + str(incl_y) + '\t' + str(incl_z) + '\n' + str(nx) + '\t' + str(ny) + '\t' + str(nz) + '\n'
-        with open(self.outdir+"amr_grid.inp","w") as f:
-            f.write(header)
-            for x,fmt  in zip([r_edges,th_edges,phi_edges],['%13.6e','%17.10e','%13.6e']):
-                x.tofile(f, sep= '\t', format=fmt)
-                f.write('\n')
-        f.close()
+    def v_transform(self,v): #spherical to cartesian
+        R,THETA,PHI = self.make_grid()
+        V = {}
+        for key in ['r','theta','phi']:
+            v[key] = np.repeat(v[key],len(self.phi),axis=2) #assumes axisymmetry
+        V['x'] = v['r']*np.sin(THETA)*np.cos(PHI) + v['theta']*np.cos(THETA)*np.cos(PHI) - v['phi']*np.sin(PHI)
+        V['y'] = v['r']*np.sin(THETA)*np.sin(PHI) + v['theta']*np.cos(THETA)*np.sin(PHI) + v['phi']*np.cos(PHI)
+        V['z'] = v['r']*np.cos(THETA) + v['theta']*np.sin(THETA)
+        return V
 
-    def write_dust_density(self):
-        small_dust = self.rho_embedded(fluid=1)
-        large_dust = self.rho_embedded(fluid=2)
-        Nr = np.prod(np.array(self.grid['N']))
-        with open(self.outdir+'dust_density.inp','w+') as f:
-            f.write('1\n')                   # Format number
-            f.write('%d\n'%(Nr))             # Number of cells
-            f.write('2\n')                   # Number of dust species
-            for dust in [small_dust,large_dust]:
-                dust = dust.swapaxes(0,1) # radmc assumes 'ij' indexing for some reason
-                data = dust.ravel(order='F')         # Create a 1-D view, fortran-style indexing
-                data.tofile(f, sep='\n', format="%13.6e")
-                f.write('\n')
-        f.close()
-        
-    def write_wavelength(self,fname='',lam=None):
-        if os.getcwd() != models_dir:
-            os.chdir(models_dir)
-        grid_data = rpy.reggrid.radmc3dGrid()
-        grid_data.readWavelengthGrid()
-        if os.getcwd() != self.outdir:
-            os.chdir(self.outdir)
-        if lam != None:
-            grid_data.wav = lam
-            grid_data.nwav = grid_data.wav.shape[0]
-            grid_data.freq = c / grid_data.wav * 1e4
-            grid_data.nfreq = grid_data.nwav
-        grid_data.writeWavelengthGrid(fname=fname)
-        os.chdir(parent_dir)
-        
-        
-    def write_opacities(self): # note to self: figure out the number of dust species inputs and parameters
-        with open(self.outdir+ 'dustopac.inp','w+') as f:
-            f.write('2               Format number of this file\n')
-            f.write('3               Nr of dust species\n')
-            f.write('============================================================================\n')
-            f.write('1               Way in which this dust species is read\n')
-            f.write('0               0=Thermal grain\n')
-            f.write('lg_maps_std        Extension of name of dustkappa_***.inp file\n')
-            f.write('----------------------------------------------------------------------------\n')
-            f.write('1               Way in which this dust species is read\n')
-            f.write('0               0=Thermal grain\n')
-            f.write('sm_maps_std        Extension of name of dustkappa_***.inp file\n')
-            f.write('----------------------------------------------------------------------------\n')
+    
+    
 
-    def write_main(self,nphot= 100000):        
-        with open(self.outdir+'radmc3d.inp','w+') as f:
-            f.write('nphot = %d\n'%(nphot))
-            f.write('scattering_mode_max = 1\n')
-            f.write('iranfreqmode = 1\n')
-            f.write('modified_random_walk = 1 \n')
-    
-    #def RT_Tdust(self):
-        #os.chdir(self.outdir)
-        #file_list = ['amr_grid.inp', 'dust_density.inp','radmc3d.inp','wavelength_micron.inp','dustopac.inp','stars.inp']
-        #func_list = [self.write_grid, self.write_dust_density, self.write_main, self.write_wavelength,self.write_opacities,self.write_star]
-        #for file, func in zip(file_list,func_list):
-         #   if os.path.exists(file) != True:
-                #func()
-        #try:
-            #os.system('radmc3d mctherm')
-        #except:
-            #print('something went wrong')
-        #return 0
-    
-    #def get_Tdust(self,fluid=1):
-       # if os.getcwd() != self.outdir:
-       #     os.chdir(self.outdir)
-       # data = rpy.analyze.readData()
-       # return data.dusttemp[:,:,:,fluid-1]
-    
-    #def get_rhodust(self,fluid=1):
-       # if os.getcwd() != self.outdir:
-       #     os.chdir(self.outdir)
-       # data = rpy.analyze.readData()
-       # return data.rhodust[:,:,:,fluid-1]
-    
-    #def make_rz_H(self,return_faces = False): #make a logarithmically spaced cylindrical grid
-        #zmin = 1e-10
-        #new_r = np.logspace(np.log10(self.grid['min'][0]), np.log10(self.grid['max'][0]), self.grid['N'][0])
-        #zf_norm = np.append(zmin, np.logspace(-4,0,50)) #faces of the z-cells
-        #zc_norm = 0.5*(zf_norm[1:] + zf_norm[:-1]) #50 points in the Z direction
-        #if return_faces == True:
-        #    R,Z = np.meshgrid(new_r,zf_norm) #returns the bin edges at the radius, for summing up columns
-        #else:
-        #    R,Z = np.meshgrid(new_r,zc_norm)
-        #Z *= R/np.tan(np.radians(self.env['theta_min']+15))
-        #return R,Z
-    
-    #def make_quadrant(self,quantity_3d,fill_value=0,order='F'): # to be used with the radmc 3d values
-        #quantity_2d = quantity_3d[:,:,0] # phi=0 plane
-        #r_cyl,z_cyl = self.make_rz()
-        #r_new, z_new = self.make_rz_H()
-        #quantity_2d_interp = griddata((r_cyl[:,:,0].flatten(),z_cyl[:,:,0].flatten()), quantity_2d.ravel(order=order), (r_new,z_new),fill_value=fill_value,method='linear')
-        #return quantity_2d_interp
     
     
     

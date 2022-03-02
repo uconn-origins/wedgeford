@@ -1,8 +1,20 @@
 from matplotlib import rc
 from matplotlib import cm
 from models.make_model import *
-from models.highenergy_rad import *
+from models.radiation import *
 from models.units import *
+from models.outputs import *
+from models.make_plots import *
+import numpy as np
+
+
+from pathlib import Path
+
+p = Path().resolve()
+parent_dir = str(p)
+models_dir = parent_dir+'/models/'
+
+np.seterr(divide='ignore')
 
 rc('font',**{'family':'serif','serif':['Times']})
 rc('text', usetex=False)
