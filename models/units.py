@@ -16,5 +16,12 @@ mu = 2.36
 h = 6.6260755e-27 #planck
 mh = 1.67e-24 # mass of hydrogen cgs
 Habing = 1.83590e+08  # Photons/cm^2/s between 930-2000 [angstroms]
-#G0 = 2.7e-3 # erg/cm^2/s 
+G0_draine = 2.7e-3 # erg/cm^2/s 
 G0 = 1.6e-3 #erg/cms^2/s betweeen 912 and 2000 angstroms (cleeves 2013)
+keV = 1.602e-9 #ergs
+#wavelength threshholds for RT (in microns)
+uv_min = 0.093
+uv_max = 0.205
+xray_min= 1.2e-4
+xray_max= 1e-2
+lam_lya = 1.215670000e-01 #frequency of lyman alpha emission in microns

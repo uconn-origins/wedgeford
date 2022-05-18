@@ -1,41 +1,47 @@
-from matplotlib import rc
-from matplotlib import cm
-from models.make_model import *
-from models.radiation import *
-from models.units import *
-from models.outputs import *
-from models.make_plots import *
+from . make_model import model_
+from . outputs import *
+from . units import *
+from . write_radmc_files import *
+from . make_plots import *
+from . dust import *
+from . observe import *
+from . import_fargo import *
+from .templates import param_library
+import os
 import numpy as np
+import pickle
 
+from pylab import *
 
 from pathlib import Path
 
 p = Path().resolve()
-parent_dir = str(p)
+parent_dir = str(p).split('wedgeford')[0] + 'wedgeford/'
 models_dir = parent_dir+'/models/'
 
-np.seterr(divide='ignore')
+np.seterr(all='ignore')
 
-rc('font',**{'family':'serif','serif':['Times']})
-rc('text', usetex=False)
-rc('mathtext', fontset = 'stix')
-rc('axes', linewidth = 1.25)
 
-SMALL_SIZE = 9
-MEDIUM_SIZE = 10
-BIGGER_SIZE = 11
-BIGGEST_SIZE = 12
+def new_model(key='default'):
+    par_dict = param_library.library[key]
+    return par_dict.copy() #important if you are making several models at once
 
-rc('font', size=SMALL_SIZE)          # controls default text sizes
-rc('axes', titlesize=BIGGER_SIZE)     # fontsize of the axes title
-rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
-rc('xtick', labelsize=SMALL_SIZE, direction='in')    # fontsize of the tick labels
-rc('ytick', labelsize=SMALL_SIZE, direction='in')    # fontsize of the tick labels
-rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
-rc('figure', titlesize=BIGGEST_SIZE) 
+def initialize_model(params,outdir='/m1_test/'):
+    model1 = model_(params,outdir=outdir)
+    # define dictionary
+    os.chdir(model1.outdir)
+    pickle.dump(params,open('pars.pkl','wb'))
+    write_grid(model1)
+    write_wavelength(model1)
+    write_star(model1)
+    output1 = out(model1)
+    print('Assigned model directory:' + model1.outdir)
+    return output1
 
-colors = cm.get_cmap('plasma',10)
-plkw={'lw':'2','color':'black'} #plot a thick black line
-plkw2 = {'lw':1,'color':'gray','ls':'dashed'}  #plot a thin gray dashed line
-plkw3 = {'lw':1.5} # plot a thicker line
-plsty = {'base':plkw,'ann':plkw2,'line':plkw3} #basic line, basic annotation, basic line, no color specified.
+def load_model(outdir='/m1_test/'):
+    os.chdir(parent_dir+outdir)
+    params = pickle.load( open( 'pars.pkl', "rb" ) )
+    model1 = model_(params,outdir=outdir)
+    print('Loading from model directory:' + model1.outdir)
+    output1 = out(model1)
+    return output1

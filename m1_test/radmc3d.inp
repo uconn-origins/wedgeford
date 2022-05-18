@@ -1,5 +1,0 @@
-nphot = 500000
-scattering_mode_max = 1
-iranfreqmode = 1
-modified_random_walk = 1 
-mc_scat_maxtauabs = 5
