@@ -344,20 +344,20 @@ def plot_opacities(output,xray=False):
     ax.set_title('Dust Population Opacities',fontsize=11)
     ax.legend()
     
-def save_setup_fig(output):
+def save_setup_fig(output,rlim=400):
     from matplotlib.backends.backend_pdf import PdfPages
     os.chdir(output.m.outdir)
     with PdfPages('disk_setup.pdf') as pp:
-        plot_components(output,0)
+        plot_components(output,0,rlim=rlim)
         f = gcf()
         f.savefig(pp,format='pdf')
-        plot_components(output,1)
+        plot_components(output,1,rlim=rlim)
         f = gcf()
         f.savefig(pp,format='pdf')
-        plot_components(output,2)
+        plot_components(output,2,rlim=rlim)
         f = gcf()
         f.savefig(pp,format='pdf')
-        plot_velocities(output)
+        plot_velocities(output,rlim=rlim)
         f = gcf()
         f.savefig(pp,format='pdf')
         plot_flux_components(output)

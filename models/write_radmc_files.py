@@ -175,7 +175,7 @@ def insert_xray_radiation(model,nx=5,nu=5,write=True): #writes the wavelength an
     
     #add lya flux
     fpeak = Lya_line(model,fLya=model.rad['fLya'])
-    fnu_[np.argmin(np.abs(lam_-lya_lam))] += fpeak
+    fnu_[np.argmin(np.abs(lam_-lam_lya))] += fpeak
     
     #find xray wavelengths
     x_lam = lam_[lam_ <= xray_max]
