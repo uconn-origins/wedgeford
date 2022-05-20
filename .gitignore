@@ -5,9 +5,8 @@
 **/*checkpoint*
 *.pyc
 models/.DS_Store
-*/*.inp
+out/*.inp
 */*.out
-*.inp
 *.out
 .DS_Store
 */.DS_Store

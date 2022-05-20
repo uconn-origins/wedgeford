@@ -1,0 +1,43 @@
+###############################################
+# Parameters
+#################################################
+# fg (#)      = dust / gas ratio in disk
+# freezeeffic = Computed by freezeeffic = (r / 0.1 mu)**-1.5.  Simulates net area loss due to grain growth.
+fg            = 1.00D+2
+freezeeffic   = 1.0
+epsilon       = 1.0
+#################################################
+# Flags
+#################################################
+# 0 = off, anything else = on
+# Crdesorp       = CR desorption
+# CRionization   = CR ionization
+# photodesorp    = Photodesorption
+# LyAphotodesorp = Lyman Alpha photodesorption
+# thermaldesorp  = Thermal Desorption / Classical Evaporation
+# include_lya    = if false (0), remove the lyman alpha flux from the UV field
+# xraydust       = dust-dependent x-ray opacity
+# incl_radionuc  = turn on/off radionuclide ionization
+CRdesorp        = 1
+CRionization    = 1
+photodesorp     = 1
+LyAphotodesorp  = 1
+thermaldesorp   = 1
+include_lya     = 1
+xraydust        = 1
+incl_radionuc   = 0
+incl_isrf       = 0
+incl_2dabun     = 0
+write_2dabun    = 1
+spatial_dust    = 1 
+#################################################
+# Testing
+#################################################
+# ratetest        = print out file with formation/destruction rates.  0 = off
+# testspec (name) = species to print out formation/destruction rate of
+#       (max=25, 160 characters)
+# shieldtest      = print out file with self shielding test data.  0 = off
+ratetest       = 1
+testspec       = O,O(gr),CO(gr),O2,O2(gr),CH3OH(gr),OH,OH(gr),C+,CO,CO2(gr),CH3O(gr),CH4(gr),C2H,H2O,C3H2,HCO+,He+,N2H+
+#testspec       = C,C+,HCO+,CO
+shieldtest    = 1
