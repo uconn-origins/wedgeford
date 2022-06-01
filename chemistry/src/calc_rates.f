@@ -534,7 +534,7 @@ C     beta == 0.0 appears never to be used.
 
 C 23) Depletion terms for ions.  From Bergin's gasgr.f code (mostly)
 C	  Cfac = factor which takes into account the charge of the accreting particle.
-C	  Eqn. 9 from Willacy et al. 1998 (a = 1000 A)
+C	  Eqn. 9 from Willacy et al. 1998 (a = 1000 A = 0.1 um = 1e-5 cm)
 C      <*> Depends on grain size.
 
 	ELSE IF (rtype.EQ.23) THEN
@@ -542,8 +542,10 @@ C      <*> Depends on grain size.
 		stick = gamma
 
 C       Back out the grain size from freezeout efficiency:
-		grnfoc = 1D-5*freezeeffic**(-1.0/1.5)
-		stickingco = 0.3
+C   Changed to base on local dust surface area correction, KRS 5/20/22
+C		grnfoc = 1D-5*freezeeffic**(-1.0/1.5)
+    grnfoc = 1D-5 * sigadjust**0.5
+C		stickingco = 0.3
 		stickingco = 1.0
 
 		Cfac = 1 + 16.71D-4 / (grnfoc * Tg(zone))
@@ -566,7 +568,8 @@ C      <*> Depends on grain size.
 	    if (zone .gt. 3) then
 			Nsites = 1E6		! This should really be an input parameter, also used for uvfield.f
             if (freezeeffic .ne. 1.0) then
-                sigmagr = pi*(rgr*freezeeffic**(-1.0/1.5))**2
+C                sigmagr = pi*(rgr*freezeeffic**(-1.0/1.5))**2
+								sigmagr = sigadjust * pi * rgr
                 Nsites = Nsites * sigmagr/(pi*rgr**2)  ! scale number of sites by increase/decrease in surface area per grain (grain growth)
             end if
 
