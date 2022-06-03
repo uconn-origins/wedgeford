@@ -9,8 +9,8 @@ from . units import *
 class model_:
     def __init__(self,params, outdir = '/m1_test/'):
         stellar_params = {'Ms': 1, 'Rs': 2.0, 'Ts': 5000, 'accrate':1e-7,'f':0.01}
-        disk_params = {'Mdisk': 0.06, 'Mfrac': [0.01,0.01],'R0':[5,5], 'Rout':[100,50], 'H0':[1,0.3], 'p':[-1,-1], 'fi':[0.25,0.25], 'Rdisk':[125,125]}
-        envelope_params = {'Min': 1e-6, 'Rc':125, 'rho_amb':1e-25, 'rho_0': 3e-22,'theta_min': 25,'exf':0.25,'Rmax':1.5e4, 'd2g': 0.01, 'shock':False}
+        disk_params = {'Mdisk': 0.06, 'Mfrac': [0.01,0.01],'R0':[5,5], 'H0':[1,0.3], 'p':[-1,-1], 'Rdisk':[125,125]}
+        envelope_params = {'Min': 1e-6, 'Rc':125, 'rho_amb':1e-25, 'rho_0': 3e-22,'theta_min': 25,'exf':0.25,'Rmax':1.5e4, 'd2g': 0.01, 'shock':False, 'nstreams': 1, 'stream_frac':1}
         grid_params = {'N':[180,90,48], 'min':[0.1,pi/16.,0], 'max':[400,pi/2.,2*pi], 'spacing':['log','lin','lin']}
         dust_params = {'rho_si':3.1518, 'amin_chem':0.06, 'amax_ism': 1.0, 'amin': [0.005,0.005], 'amax': [1,1e3], 'apow': [3.5,3.5]}
         RT_params = {'cr_model': 'ssx','zetacr': 1.3e-17, 'G0':1, 'viscous_heating':True, 'fLya': 1e-4}
@@ -159,7 +159,7 @@ class model_:
     def sig_profile(self,R,fluid=0): #fluid = 0 for gas, 1 for small dust (follows gas), 2 for large dust (settled)
         i = max(fluid,1)-1 #small dust follows gas
         Rd = self.disk['Rdisk'][i]
-        Rout = self.disk['Rout'][i]
+        #Rout = self.disk['Rout'][i]
         p = self.disk['p'][i]
         R0 = self.disk['R0'][i]
         frac = [1.-self.disk['Mfrac'][0]-self.disk['Mfrac'][1],self.disk['Mfrac'][0],self.disk['Mfrac'][1]]
@@ -241,7 +241,7 @@ class model_:
         t2 = np.sqrt(1 + cosa)
         #t3 = ((np.cos(th)/(2*np.cos(th0))) + (Rc/r)*(np.cos(th0)**2))
         t3 = 0.5*cosa + (Rc/r)*(np.cos(th0)**2)
-        rho1 = t1/(t2*t3)
+        rho1 = t1/(t2*t3) * (1./self.env['stream_frac'])
         
         vkep = self.vk(r)
         cs = self.cs(r)
@@ -344,10 +344,77 @@ class model_:
                 #PROP[key] = np.repeat(PROP[key],4,axis=-1)
                 PROP[key] = np.repeat(np.expand_dims(PROP[key],axis=-1),len(self.phi),axis=-1)
         return PROP
+    
+    def isolate_stream(self, dphi_frac = 0.3, nstream = 1):
+        shock = False
+        np0 = len(self.phi)
+        npstream = int(dphi_frac*np0)/nstream #how many phi0 per stream
+        stream_phi = np.array([(np.arange(0,npstream,1) + i*np0/nstream).astype(int) for i in range(nstream)]).flatten()
+
+        r_s = np.array([])
+        th_s = np.array([])
+        phi_s = np.array([])
+        stream_s = np.array([])
+        thstart = np.radians(self.env['theta_min'])
+        acosj = np.arccos(np.linspace(np.cos(thstart),1e-6, 180))
+
+        dphi = np.gradient(self.coords[2])[0]
+        subset_phi = self.phi[stream_phi]
+        index_phi = stream_phi
+
+
+        for j in acosj:
+            streamline = self.stream(th0=j,p0=0,shock=shock)
+            r_s = np.append(r_s,streamline['path'][0])
+            th_s = np.append(th_s,streamline['path'][1])
+            phi_s = np.append(phi_s,streamline['path'][2])
+            stream_s = np.append(stream_s,np.zeros_like(streamline['path'][0]))
+
+        for ip in range(1,np0):
+            if ip in index_phi:
+                stream_ = np.ones_like(r_s)
+            else:
+                stream_ = np.zeros_like(r_s)
+            stream_s = np.append(stream_s,stream_)
+
+        r_s = np.repeat(r_s,np0,axis=-1)
+        th_s = np.repeat(th_s,np0,axis=-1)
+        phi_s = np.array([phi_s + dphi for dphi in self.phi]).flatten()
+
+        zcyl_s = r_s*np.cos(th_s)
+        rcyl_s = r_s*np.sin(th_s)
+
+        R_CYL,Z_CYL = self.make_rz()
+        stream_mask = np.zeros_like(R_CYL[:,:,0])
+        for ip in range(len(self.phi)):
+            R = R_CYL[:,:,0]
+            Z = Z_CYL[:,:,0]
+            iphi = self.phi[ip]
+            rcyl = rcyl_s[np.where(np.abs(phi_s-iphi)<=dphi/2.)]
+            zcyl = zcyl_s[np.where(np.abs(phi_s-iphi)<=dphi/2.)]
+            stream_val = stream_s[np.where(np.abs(phi_s-iphi)<=dphi/2.)]
+            if len(rcyl) > 0:
+                mask = np.clip(interpolate.griddata((rcyl,zcyl),stream_val,(R,Z),method='linear',fill_value=-1,rescale=False),a_min = 0.0, a_max=None)
+            else:
+                mask = np.zeros_like(R)
+            stream_mask = np.dstack([stream_mask,mask])
+        stream_mask = stream_mask[:,:,1:]
+        return stream_mask
         
     def rho_env(self,fluid=0):
         rho0 = self.env['rho_0']
         rho_vol = self.solve_envelope(prop='rho')
+        if fluid == 0:
+            return rho_vol + self.env['rho_amb']
+        elif fluid == 1:
+            return (rho_vol + self.env['rho_amb'])*self.env['d2g']
+        else:
+            return rho_vol*0 
+        
+    def rho_streamvelope(self,fluid=0,dphi_frac=0.3,nstream=1):
+        stream_mask = self.isolate_stream(dphi_frac=dphi_frac,nstream=nstream)
+        rho0 = self.env['rho_0']
+        rho_vol = self.solve_envelope(prop='rho')*stream_mask
         if fluid == 0:
             return rho_vol + self.env['rho_amb']
         elif fluid == 1:
@@ -382,7 +449,10 @@ class model_:
     def rho_embedded(self,fluid=0):
         shock = self.env['shock']
         rho_d = self.rho_disk(fluid=fluid)
-        rho_e = self.rho_env(fluid=fluid)
+        if self.env['nstreams'] == 1 and self.env['stream_frac'] == 1:
+            rho_e = self.rho_env(fluid=fluid)
+        else:
+            rho_e = self.rho_streamvelope(fluid=fluid,dphi_frac=self.env['stream_frac'],nstream=self.env['nstreams'])
         floor = self.env['rho_amb']*np.array([1,self.env['d2g'],0])
         #if shock == True:
             #rho_both = np.clip(np.maximum(rho_d,rho_e),a_min=floor[fluid],a_max=None)

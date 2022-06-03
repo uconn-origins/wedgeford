@@ -3,9 +3,9 @@
 ============================================================================
 1               Way in which this dust species is read
 0               0=Thermal grain
-dust-1x    Extension of name of dustkappa_***.inp file
+dust-1    Extension of name of dustkappa_***.inp file
 ----------------------------------------------------------------------------
 1               Way in which this dust species is read
 0               0=Thermal grain
-dust-2x    Extension of name of dustkappa_***.inp file
+dust-2    Extension of name of dustkappa_***.inp file
 ----------------------------------------------------------------------------

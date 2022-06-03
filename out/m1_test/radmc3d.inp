@@ -1,8 +1,8 @@
-nphot = 100000
+nphot = 1000000
 scattering_mode_max = 2
 iranfreqmode = 1
 modified_random_walk = 1
-mc_scat_maxtauabs = 20
+mc_scat_maxtauabs = 5
 tgas_eq_tdust = 1
 incl_dust = 1
 incl_lines = 0

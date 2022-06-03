@@ -44,8 +44,6 @@ Code repository for the Warm Emission Due to Gas Envelopes Falling Onto Rotating
   + Creation of model object
   + Radiative Transfer of model to calculate dust temperature
   + Cosmic ray attenuation
-+ [highenergy_RT](./highenergy_RT/index.md)
-  + UV, X-ray radiative transfer
 + [chemistry](./chemistry/index.md)
   + Full chemical modeling
 

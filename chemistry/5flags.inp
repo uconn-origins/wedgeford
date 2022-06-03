@@ -29,7 +29,7 @@ incl_radionuc   = 0
 incl_isrf       = 0
 incl_2dabun     = 0
 write_2dabun    = 1
-spatial_dust    = 1
+spatial_dust    = 1 
 #################################################
 # Testing
 #################################################

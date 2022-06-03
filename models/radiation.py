@@ -125,3 +125,34 @@ def Lya_line(model, fLya=1e-2):
     #fnu_lya = interpolate.interp1d(x= nu, y = fnu*norm, fill_value=np.amin(fnu*norm),bounds_error=False) #function to put in a line profile
     return fpeak_lya
 
+###### function for binning the high energy radiation fields onto the wavelengths for chemistry 
+def bin_input_spectrum(model,field='uv'):
+    if field == 'uv':
+        lam_chem = np.arange(930,2010,10) #in angstroms
+        lam_mu = lam_chem*1e-4 #in microns
+        lam_rt = np.linspace(uv_min,uv_max,5)
+        dnu_rt = c/(np.gradient(lam_rt)*1e-4)
+    if field == 'xray':
+        lam_chem = np.arange(1,21,1) #in keV
+        lam_mu = (1e4*h*c)/(lam_chem*keV) #in microns
+        lam_rt = np.logspace(np.log10(xray_min),np.log10(xray_max),5)
+        dnu_rt = c/(np.gradient(lam_rt)*1e-4)
+    write_wavelength(model,lam=lam_mu,fname='chem_wavelength_micron.inp')
+    os.chdir(model.outdir)
+    grid = rpy.reggrid.radmc3dGrid()
+    grid.readWavelengthGrid(fname='chem_wavelength_micron.inp')
+    rad_data = rpy.radsources.radmc3dRadSources(ppar=model.radmcpar,grid=grid)
+    rad_data.nstar = 1
+    rad_data.incl_accretion = True
+    rad_data.getStarSpectrum(grid=grid,ppar=model.radmcpar)
+    rad_data.getSpotSpectrum(grid=grid,ppar=model.radmcpar)
+    
+    fnu_ = np.squeeze(rad_data.fnustar) + np.squeeze(rad_data.fnuspot)
+
+    if field == 'xray':
+        xmodel = acc_onto_star(model,lam_mu)
+        fnu_ += xmodel['shock']['F'] + xmodel['cool']['F'] 
+    
+    spec0 = interpolate.interp1d(x=lam_mu, y=fnu_,fill_value='extrapolate')
+    return spec0
+
