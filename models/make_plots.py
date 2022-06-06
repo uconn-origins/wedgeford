@@ -39,15 +39,20 @@ plkw3 = {'lw':1.5} # plot a thicker line
 plsty = {'base':plkw,'ann':plkw2,'line':plkw3} #basic line, basic annotation, basic line, no color specified.
 
 ##### plotting convenience functions #####
-def plot_slice(output,rho,log=True,**plot_params):
+def plot_slice(output,rho,log=True,average = True, **plot_params):
     model = output.m
     R_CYL,Z_CYL = model.make_rz()
     if rho.ndim > R_CYL[:,:,0].ndim:
-        rho2d = rho[:,:,0]
-    elif np.shape(rho) != np.shape(R_CYL[:,:,0]):
-        rho2d = rho.T
+        if average == True:
+            rho2d = np.average(rho,axis=-1) #azimuthal average 
+        else:
+            rho2d = rho[:,:,0]
     else:
         rho2d = rho
+    if np.shape(rho) != np.shape(R_CYL[:,:,0]):
+        rho2d = rho2d.T
+    else:
+        rho2d = rho2d
     ax = gca()
     if log == True:
         im=ax.contourf(R_CYL[:,:,0],Z_CYL[:,:,0], np.log10(rho2d),**plot_params)
@@ -55,15 +60,20 @@ def plot_slice(output,rho,log=True,**plot_params):
         im=ax.contourf(R_CYL[:,:,0],Z_CYL[:,:,0], rho2d,**plot_params)
     return im
 
-def plot_contour(output,rho,thresh,log=False,**plot_params):
+def plot_contour(output,rho,thresh,log=False,average=True,**plot_params):
     model = output.m
     R_CYL,Z_CYL = model.make_rz()
     if rho.ndim > R_CYL[:,:,0].ndim:
-        rho2d = rho[:,:,0]
-    elif np.shape(rho.T) == np.shape(R_CYL[:,:,0]):
-        rho2d = rho.T
+        if average == True:
+            rho2d = np.average(rho,axis=-1)
+        else:
+            rho2d = rho[:,:,0]
     else:
         rho2d = rho
+    if np.shape(rho) != np.shape(R_CYL[:,:,0]):
+        rho2d = rho2d.T
+    else:
+        rho2d = rho2d
     ax = gca()
     if log == True:
         cs = ax.contour(R_CYL[:,:,0],Z_CYL[:,:,0], np.log10(rho2d),**plot_params,levels=thresh)
@@ -312,6 +322,36 @@ def plot_shock_model(output):
               r'$R_{\rm d}$ =' + '{} au,'.format(int(Rd)))
     norm = mpl.colors.Normalize(vmin=np.degrees(thstart), vmax=90)
     colorbar(cm.ScalarMappable(norm=norm, cmap='twilight_r'),location='bottom',ax=ax[0,:],label=r'streamline $\theta_0$ [deg]',shrink=0.5,aspect=10)
+    
+def plot_streams_polar(output,rlim=400):
+    model = output.m
+    np0 = len(model.phi)
+    nstream = model.env['nstreams']
+    dphi_frac = model.env['stream_frac']
+    npstream = int(dphi_frac*np0)/nstream #how many phi0 per stream
+    stream_phi = np.array([(np.arange(0,npstream,1) + i*np0/nstream).astype(int) for i in range(nstream)]).flatten()
+    thstart = np.radians(model.env['theta_min'])
+
+    dphi = np.gradient(model.coords[2])[0]
+    subset_phi = model.phi[stream_phi]
+    index_phi = stream_phi
+    
+    for p0 in subset_phi:
+        r_s = np.array([])
+        th_s = np.array([])
+        phi_s = np.array([])
+        streamline = model.stream(th0=thstart,p0=p0,shock=False)
+        r_s = np.append(r_s,streamline['path'][0])
+        th_s = np.append(th_s,streamline['path'][1])
+        phi_s = np.append(phi_s,streamline['path'][2])
+    
+        x_s = r_s*np.sin(th_s)*np.cos(phi_s)
+        y_s = r_s*np.sin(th_s)*np.sin(phi_s)
+    
+        plot(x_s,y_s,lw=1,color='black')
+    axis('scaled')
+    xlim(-rlim,rlim)
+    ylim(-rlim,rlim)
 
 
 def plot_kappa(output,filename='',header=False,**kwarg):
