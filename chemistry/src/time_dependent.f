@@ -20,10 +20,10 @@ C Initialization of common blocks:
 	DOUBLE PRECISION EHc,EHp,Es,nuHc,Flu,squiggle,effh2
 	CHARACTER*13 species
 	INTEGER r1index, grindex
-        DOUBLE PRECISION sigadjust
+  DOUBLE PRECISION sigadjust
 
-        sigadjust = 1.0
-        if (incl_locdust) sigadjust = locdust(zone)
+  sigadjust = 1.0
+  if (incl_locdust) sigadjust = locdust(zone)
 
 c	calcrate = ralpha*(Tg(zone)/300.0D0)**rbeta
 	vel = ((8.0 * kbol * Tg(zone))/(pi * rbeta * mH))**0.5
@@ -229,10 +229,10 @@ C Initialization of common blocks:
 	DOUBLE PRECISION EHc,EHp,Es,nuHc,Flu,squiggle,effh2
 	CHARACTER*13 species
 	INTEGER r1index, grindex
-        DOUBLE PRECISION sigadjust
+  DOUBLE PRECISION sigadjust
 
-        sigadjust = 1.0
-        if (incl_locdust) sigadjust = locdust(zone)
+  sigadjust = 1.0
+  if (incl_locdust) sigadjust = locdust(zone)
 
 c	calcrate = ralpha*(Tg(zone)/300.0D0)**rbeta
 	vel = ((8.0 * kbol * Tg(zone))/(pi * rbeta * mH))**0.5
@@ -347,6 +347,7 @@ c Abundance of monolayers is then nice / Mlayers = ngr * Nsites
 C..............................................................................
 	DOUBLE PRECISION FUNCTION occupyice(species)
 	IMPLICIT NONE
+C for reaction type -41 , currently not used	
 
 C Include the environmental variables
 	INCLUDE "environ.h"
