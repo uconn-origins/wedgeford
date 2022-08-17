@@ -102,7 +102,7 @@ C Rs(Nz)      == radius (AU),
 C
 C rho(Nz)     == density [g/cm^3],
 C
-C ngr_init(Nz)     == dust number density [1/cm^3],
+C ngr(Nz)     == dust number density [1/cm^3],
 C
 C Tg(Nz)      == gas temperature [K],
 C
@@ -524,8 +524,8 @@ C Read in each zone's parameters
            read (01,*) Rs(i), rho(i), Tg(i), Td(i), zAU(i), zcm(i),
      &				Nrz(i), zetaCR(i)
         else
-           read (01,*) Rs(i), rho(i), ngr_init(i), Tg(i), Td(i), zAU(i), zcm(i),
-     &                          Nrz(i), zetaCR(i),locdust(i)
+           read (01,*) Rs(i), rho(i), ngr(i), Tg(i), Td(i), zAU(i),
+     &                           zcm(i), Nrz(i), zetaCR(i),locdust(i)
               print *, 'Local dust fraction adjusted by: ',i,locdust(i)
         end if
 C If Tgas <= 0, assume it's not set and set Tg = Td.

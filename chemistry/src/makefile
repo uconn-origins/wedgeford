@@ -11,7 +11,8 @@ optFLAG = -ffixed-line-length-200 -finit-local-zero  -fno-align-commons -freal-4
 FLAGS =  $(optFLAG) $(formFLAG)
 
 ODE = dvodpk.o fd05.o id05.o ma28.o ma28_aux.o funs_dvodepk.o
-SOLVE = Drive_dvode.o Fcn.o Jacobian.o calc_rates.o time_dependent.o heatdiff.o
+# SOLVE = Drive_dvode.o Fcn.o Jacobian.o calc_rates.o time_dependent.o heatdiff.o
+SOLVE = Drive_dvode.o Fcn.o Jacobian.o calc_rates.o time_dependent.o
 READ = read_$(network_name).o uv_field.o
 FILES = $(ODE) $(SOLVE) $(READ)
 

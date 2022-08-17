@@ -5,7 +5,7 @@ C "Driver" subroutine to the stiff SODE solver "DVODEPK".
 C
 C------------------------------------------------------------------------------
 C Input parameter(s):
-C 
+C
 C neq      == number of equations,
 C
 C tfirst   == initial time step,
@@ -27,11 +27,11 @@ C
 C abundances(ns,nt) == species abundances
 C
 C------------------------------------------------------------------------------
-C Used subroutine(s) and function(s) (alphabetically): 
-C 
+C Used subroutine(s) and function(s) (alphabetically):
+C
 C Function(s): calcrate, Fcn, Jacobian
 C Subroutine(s): dvodpk
-C 
+C
 C------------------------------------------------------------------------------
       subroutine run_chemistry(neq,tfirst,nt,yy,tlast,rtol1,atol1)
       implicit none
@@ -53,7 +53,7 @@ C Local variable(s):
       INTEGER n_mols,dummyy
 	  PARAMETER (n_mols = 4)
 	  real grnfrac
-      integer mf, itol, itask, istate, iopt, lrw, liw, IPAR, i, k, 
+      integer mf, itol, itask, istate, iopt, lrw, liw, IPAR, i, k,
      1   neqz, timedep, j
       real*8 RPAR, t, tout, tstep, atol(nspec), rtol(nspec)
       dimension RPAR(nspec), IPAR(nspec*nss)
@@ -63,9 +63,10 @@ C Local variable(s):
 	  INTEGER imol
 	  CHARACTER*13 species
 	  CHARACTER*13 specarr(n_mols)
-	  DOUBLE PRECISION numtot, nr1, ngr, Numr1(n_mols)
+C	  DOUBLE PRECISION numtot, nr1, ngr, Numr1(n_mols)
+	  DOUBLE PRECISION numtot, nr1, Numr1(n_mols)    
 	  INTEGER r1index, grindex
-	  
+
 C External routines:
       external Fcn, Jacobian, psol
 
@@ -80,7 +81,7 @@ C Initial parameters:
         neqz     = neq
         lrw      = neqz*nss+721+32*neqz  !Declared size of RWORK (61+17*n+LWP)
         liw      = 30+5*neqz             !Declared size of IWORK (30+LIWP)
-		IWORK(1) = neqz*nss              !LWP - size of real array for precond. 
+		IWORK(1) = neqz*nss              !LWP - size of real array for precond.
 		IWORK(2) = neqz*5                !LIWP - size of integer array for precond.
 		IWORK(3) = 1                     !JPRE=0,1,2,3
 		IWORK(4) = 1                     !JACFLG=0,1
@@ -99,15 +100,15 @@ C Set the time-dependent reaction rates
 	    DO j = 1, nre
 		  IF (rtype(j) .LT. 0) THEN
 
-				ak(j) = calcrate(alpha(j), beta(j), gamma(j), rtype(j), 
+				ak(j) = calcrate(alpha(j), beta(j), gamma(j), rtype(j),
      &				r1(j),r2(j),grnfrac, timedep, dtaudt,tout)
 c			if (ak(j) .LE. 1.0d-100) then
 c				write(98,*) j, rtype(j), r1(j), ak(j)
 c			endif
 		  END IF
 	    END DO
-  	  	     
-        times(i) = tout 
+
+        times(i) = tout
         write(*,10) 'zone = ', zone, 't1 = ',tout / 3.155D+07
    10   FORMAT(1X,A7,I2,2X,A5,1pE10.3)
 
@@ -168,7 +169,7 @@ c         write(*,*) 'repeated convergence test failures,'
 c         write(*,*) 'perhaps Jacobian is not accurate enough'
          istate = 2
 	   tout = tout / tstep
-         goto 20 
+         goto 20
       else if (istate.eq.-6) then
 c         write(*,*) 'a solution component "i" is vanished, but'
 c         write(*,*) 'pure absolute error control ATOL = 0 was requested'
@@ -182,11 +183,11 @@ C TEST - Rate Tests
 C j = species index, k = reacs index
 		IF (ratetest) THEN
 			do j=1,Nratetest
-				open(unit=30+j, file=fnameRT(j), status='old', 
+				open(unit=30+j, file=fnameRT(j), status='old',
      +				access='append')
 				write(30+j,100,advance='no') zone,tout/tstep/3.155D+07
 				do k=1,NRTreacs(j)
-					write(30+j, 101, advance='no') 
+					write(30+j, 101, advance='no')
      +					RTreacs(j,k), RTrates(j, k)
 				enddo
 				write(30+j, *)
@@ -212,4 +213,3 @@ c end of dvode loop
 C Exit:
       return
       end
-
