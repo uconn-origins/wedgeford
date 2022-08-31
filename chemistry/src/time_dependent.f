@@ -14,16 +14,16 @@ C Initialization of common blocks:
 	INCLUDE "rates.h"
 
 	DOUBLE PRECISION ralpha, rbeta, rgamma
-	DOUBLE PRECISION nr1, ngr
+	DOUBLE PRECISION nr1
 	DOUBLE PRECISION calcrate
 	DOUBLE PRECISION vel
+	DOUBLE PRECISION sigadjust
 	DOUBLE PRECISION EHc,EHp,Es,nuHc,Flu,squiggle,effh2
 	CHARACTER*13 species
 	INTEGER r1index, grindex
-  DOUBLE PRECISION sigadjust
 
-  sigadjust = 1.0
-  if (incl_locdust) sigadjust = locdust(zone)
+	sigadjust = 1.0
+	if (incl_locdust) sigadjust = locdust(zone)
 
 c	calcrate = ralpha*(Tg(zone)/300.0D0)**rbeta
 	vel = ((8.0 * kbol * Tg(zone))/(pi * rbeta * mH))**0.5
@@ -60,11 +60,11 @@ C     &		* exp(-Es/(Tg(zone))))**(-1)*squiggle
 		ngr = abundances(grindex, timestep-1)
 	END IF
 
-	IF (ngr .LT. 1.0e-20) THEN
+	IF (ngr .lt. 1.0e-20) THEN
 		ngr = ngr_init
 	ENDIF
 
-	IF (nr1 .GT. ngr) THEN
+	IF (nr1 .gt. ngr) THEN
 		calcrate = calcrate * ngr / nr1
 	ENDIF
 
@@ -223,16 +223,16 @@ C Initialization of common blocks:
 	INCLUDE "rates.h"
 
 	DOUBLE PRECISION ralpha, rbeta, rgamma
-	DOUBLE PRECISION nr1, ngr
+	DOUBLE PRECISION nr1
 	DOUBLE PRECISION calcrate
 	DOUBLE PRECISION vel
 	DOUBLE PRECISION EHc,EHp,Es,nuHc,Flu,squiggle,effh2
 	CHARACTER*13 species
 	INTEGER r1index, grindex
-  DOUBLE PRECISION sigadjust
+	DOUBLE PRECISION sigadjust
 
-  sigadjust = 1.0
-  if (incl_locdust) sigadjust = locdust(zone)
+	sigadjust = 1.0
+	if (incl_locdust) sigadjust = locdust(zone)
 
 c	calcrate = ralpha*(Tg(zone)/300.0D0)**rbeta
 	vel = ((8.0 * kbol * Tg(zone))/(pi * rbeta * mH))**0.5
@@ -267,7 +267,7 @@ c      print *, ralpha,rbeta,rgamma,species
 		ngr = abundances(grindex, timestep-1)
 	END IF
 
-	IF (ngr .LT. 1.0e-20) THEN
+	IF (ngr .lt. 1.0e-20) THEN
 		ngr = ngr_init
 	ENDIF
 
@@ -295,7 +295,7 @@ C Include the environmental variables
 	CHARACTER*13 specname, nogrspec
 	INTEGER i, grspecindex, grindex,Hindex,Dindex
 	DOUBLE PRECISION  Nsites, ngrspec
-	DOUBLE PRECISION ngr, Mlayers
+	DOUBLE PRECISION Mlayers
 	DOUBLE PRECISION fr,molarea
 
 C This part of the code currently assumes all grains are small but there are fewer of them.
@@ -329,10 +329,10 @@ c Get the current abundance of grains
 
 
 c set the abundance for the first zone (when abundances = 0)
-	IF (n_ice .LT. MINABUN) THEN
+	IF (n_ice .lt. MINABUN) THEN
 		n_ice = n_ice_init
 	ENDIF
-	IF (ngr .LT. MINABUN) THEN
+	IF (ngr .lt. MINABUN) THEN
 		ngr = ngr_init
 	ENDIF
 
@@ -347,7 +347,7 @@ c Abundance of monolayers is then nice / Mlayers = ngr * Nsites
 C..............................................................................
 	DOUBLE PRECISION FUNCTION occupyice(species)
 	IMPLICIT NONE
-C for reaction type -41 , currently not used	
+C for reaction type -41 , currently not used
 
 C Include the environmental variables
 	INCLUDE "environ.h"
@@ -358,7 +358,7 @@ C Include the environmental variables
 	CHARACTER*13 specname, nogrspec, species
 	INTEGER i, grspecindex, grindex,r1index
 	DOUBLE PRECISION  ngrspec
-	DOUBLE PRECISION ngr, Mlayers
+	DOUBLE PRECISION Mlayers
 	DOUBLE PRECISION fr,nr1
 
 C This part of the code currently assumes all grains are small but there are fewer of them.
@@ -490,7 +490,7 @@ c If beyond the last point, return the last value (no extrapolation)
 
 c find points to interpolate around
 	do i=1,npts
-		if (xval .LT. x(i)) then
+		if (xval .lt. x(i)) then
 			ipt = i-1
 			exit
 		endif
@@ -986,9 +986,9 @@ c  or small column.  When flag=0, the value is taken from the table.
 		call splint(xnh2,theta_highco,dtheta_highco,ih2,lnh2,thetatot)
 
 c spline between 22 and 23 is negative, so linearly interpolate in that range
-        if (thetatot .LT. 0) then
+        if (thetatot .lt. 0) then
             do i = 1,ih2
-                if (lnh2 .GT. xnh2(i)) i_h2 = i
+                if (lnh2 .gt. xnh2(i)) i_h2 = i
             end do
             thetatot = theta(i_h2,8) + (lnh2 - floor(lnh2)) *
      &		(theta(i_h2+1,8) - theta(i_h2,8)) / (ceiling(lnh2) - floor(lnh2))
@@ -1008,7 +1008,7 @@ c spline between 22 and 23 is negative, so linearly interpolate in that range
 
 	if (flag .eq. 0) then
 
-		if (lnco .LT. 0.0) then
+		if (lnco .lt. 0.0) then
 			print *, 'FYI: lnco is less than zero - setting it to 0.0.'
 			lnco = 0.0
 			smallcol = 1
@@ -1078,7 +1078,7 @@ c	self_shield_CO = self_shield_CO * etau
 
  112     format(1x,f3.0,2x,7(1x,e8.3),2x, i4)
 
-	if (self_shield_CO .LT. 0) then
+	if (self_shield_CO .lt. 0) then
 		print *, 'You broke the code!! selfshield_CO: ',self_shield_CO
 		if (smallcol .eq. 1) then
 		     self_shield_CO = 0.0 !! LIC?
@@ -1588,7 +1588,7 @@ C..............................................................................
       implicit double precision (a-h, o-z)
       PARAMETER (NMAX=100)
       DIMENSION X(N),Y(N),Y2(N),U(NMAX)
-      IF (YP1.GT..99E30) THEN
+      IF (YP1.gt..99E30) THEN
         Y2(1)=0.
         U(1)=0.
       ELSE
@@ -1602,7 +1602,7 @@ C..............................................................................
         U(I)=(6.*((Y(I+1)-Y(I))/(X(I+1)-X(I))-(Y(I)-Y(I-1))
      *      /(X(I)-X(I-1)))/(X(I+1)-X(I-1))-SIG*U(I-1))/P
 11    CONTINUE
-      IF (YPN.GT..99E30) THEN
+      IF (YPN.gt..99E30) THEN
         QN=0.
         UN=0.
       ELSE
@@ -1626,9 +1626,9 @@ C..............................................................................
       DIMENSION XA(N),YA(N),Y2A(N)
       KLO=1
       KHI=N
-1     IF (KHI-KLO.GT.1) THEN
+1     IF (KHI-KLO.gt.1) THEN
         K=(KHI+KLO)/2
-        IF(XA(K).GT.X)THEN
+        IF(XA(K).gt.X)THEN
           KHI=K
         ELSE
           KLO=K
@@ -1667,12 +1667,12 @@ C Initialization of common blocks:
 	INCLUDE "constants.h"
         INCLUDE "environ.h"
 
-	DOUBLE PRECISION a_gr, Mlayer, ngr
+	DOUBLE PRECISION a_gr, Mlayer
 	INTEGER i, grindex
-        DOUBLE PRECISION sigadjust, rgr
+	DOUBLE PRECISION sigadjust, rgr
 
-        sigadjust = 1.0
-        if (incl_locdust) sigadjust = locdust(zone)
+	sigadjust = 1.0
+	if (incl_locdust) sigadjust = locdust(zone)
 
 
 c sum the abundance of on-grain species
@@ -1695,10 +1695,10 @@ c sum the abundance of on-grain species
 
 C catch for first run, before any grain species have been calculated
 C (before first solver call).
-	IF (n_ice .LT. 1.0e-20) THEN
+	IF (n_ice .lt. 1.0e-20) THEN
 		n_ice = n_ice_init
 	ENDIF
-	IF (ngr .LT. 1.0e-20) THEN
+	IF (ngr .lt. 1.0e-20) THEN
 		ngr = ngr_init
 	ENDIF
 
@@ -1710,7 +1710,7 @@ C (before first solver call).
 C perc_ice = n(i) / n_ice
 C fac = ngr * perc_ice / n(i), perc_ice = n(i) / n_ice
 C fac = PDadjust
-	IF (numlayers .GT. 1.0) THEN
+	IF (numlayers .gt. 1.0) THEN
 		PDadjust = ngr / n_ice
 c		if (perc_ice(rspec(i,1)) .lt. 1e-3) fac = 1.0e-3
 	ELSE
@@ -1718,7 +1718,7 @@ c		if (perc_ice(rspec(i,1)) .lt. 1e-3) fac = 1.0e-3
 c		if (perc_ice(rspec(i,1)) .lt. 5.0e-5) fac = 5.0e-5
 	ENDIF
 
-	IF (numlayers .LT. 1.0) THEN
+	IF (numlayers .lt. 1.0) THEN
 		Madjust = 1.0
 	ELSE
 		Madjust = 1.0 / numlayers
