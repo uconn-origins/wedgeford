@@ -971,7 +971,6 @@ C Calculation of the initial abundances:
 				ENDIF
 			else
 				y0(k(i)) = fraction(i)*density
-        C KRS need to change this
 			endif
 		  endif
       end do
