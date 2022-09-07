@@ -200,7 +200,7 @@ C Local variable(s):
 c	  real dtaudt(9000,3)
       integer nln,indv
       INTEGER jg ! iterates final zone species for lower error, temporary
-      LOGICAL sameness
+      LOGICAL sameness, old_format
 
 
 C Current version of the code:
@@ -420,10 +420,10 @@ C Flags
 				read(flagval, '(I3)') intflagval
 				if (intflagval .EQ. 0) then
 					incl_2dabun = .FALSE.
-					print *, "1D abundances!!!!!!!!!!!!!!!!!!!!!"
+					print *, "1D abundances!"
 				else
 					incl_2dabun = .TRUE.
-					print *, "2D abundances!!!!!!!!!!!!!!!!!!!!!"
+					print *, "2D abundances!"
 				endif
 				if (abun2dfile .eq. 'None') incl_2dabun = .FALSE.
 				if (abun2dfile .eq. 'NONE') incl_2dabun = .FALSE.
@@ -441,6 +441,13 @@ C Flags
                     incl_locdust = .FALSE.
                 else
                     incl_locdust = .TRUE.
+                endif
+      else if (trim(flagname).eq.'old_format') then
+                read(flagval, '(I3)') intflagval
+                if (intflagval .EQ. 0) then
+                    old_format = .FALSE.
+                else
+                    old_format = .TRUE.
                 endif
 
 C Testing values
@@ -518,22 +525,35 @@ C..............................................................................
 		stop
 	  endif
 C Read in each zone's parameters
+	  if (old_format) then
       DO i = 1, Nr*Nz, 1
         if (.not. incl_locdust) then
            print *, 'assume rho_d = rho_g/100'
-           read (01,*) Rs(i), rho(i), Tg(i), Td(i), zAU(i), zcm(i),
-     &				Nrz(i), zetaCR(i)
+           read (01,*) Rs(i),rho(i),Tg(i),Td(i),zAU(i),zcm(i),Nrz(i),zetaCR(i)
+            ngr(i) = rho(i)*1e-2*0.75/(1.4*pi*1e-21)
         else
-           read (01,*) Rs(i), rho(i), ngr(i), Tg(i), Td(i), zAU(i),
-     &                           zcm(i), Nrz(i), zetaCR(i),locdust(i)
+           read (01,*) Rs(i),rho(i),Tg(i),Td(i),zAU(i),zcm(i),Nrz(i),zetaCR(i),locdust(i)
+              print *, 'Local dust fraction adjusted by: ',i,locdust(i)
+              ngr(i)=rho(i)*1e19*0.75/(1.4*pi*locdust(i)*sqrt(locdust(i)))
+        end if
+C If Tgas <= 0, assume it's not set and set Tg = Td.
+        if (Tg(i) .LE. 0) Tg(i) = Td(i)
+      END DO
+c internal density in ngr calc from Krijt & Ciesla 16
+	  else
+      DO i = 1, Nr*Nz, 1
+        if (.not. incl_locdust) then
+          read (01,*) Rs(i),rho(i),ngr(i),Tg(i),Td(i),zAU(i),zcm(i),Nrz(i),
+     &        zetaCR(i)
+        else
+          read (01,*) Rs(i),rho(i),ngr(i),Tg(i),Td(i),zAU(i),zcm(i),Nrz(i),
+     &        zetaCR(i),locdust(i)
               print *, 'Local dust fraction adjusted by: ',i,locdust(i)
         end if
 C If Tgas <= 0, assume it's not set and set Tg = Td.
-		if (Tg(i) .LE. 0) Tg(i) = Td(i)
-c                Tg(i) = Tg(i)+20.0
-c                Td(i) = Td(i)+20.0
-c KRS
-	  END DO
+        if (Tg(i) .LE. 0) Tg(i) = Td(i)
+      END DO
+	  end if
 
 c Create dust string:
       lastzer = -1
