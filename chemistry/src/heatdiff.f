@@ -120,21 +120,17 @@ c	6/30/00: it works w/o evap cooling!
 c	7/7/00:  it works w/ evap and rad cooling!
 c	1/21/12: limit number of molecules that are available to evaporate
 
+	INCLUDE "environ.h"
+
 	logical done, writeout
 	real pi,kappa,kB,kA,JpeV,radiusgran,dx,rcs,fkapitz,fspec
 	real rlameff,Qe,sigSB,Asite, v0,Tbind,dTemp,Tmax,Aeff,grvol
 	real Edvol,Edep,Rad,Tspot,time,dt,Tdmin,Eevap, Erad,dEevap
 	real dErad,dEheat,rCv,Hcap,therm_cond,sp_heat,alpha,beta
 	real game,game_mol,gamr,Eheat,Tdiff,Tdx,Tdxi,Ttarg,Tdiffi
-	double precision zonedefT
+	double precision zonedefT, sigadjust
 	integer numgr, nhot, nmol,num_mol,i,imol,iwcount,ct, imoln
 	real mirror, dt0, EdeV
-
-	sigadjust = 2.5e-13
-	C corresponds to old radiusgran=50e-10
-	if (incl_locdust) then
-		sigadjust = locdust(zone)
-	end if
 
 
 	parameter (mirror=0)	 ! endpoint: 1 for insulated, 0 for sink.
@@ -147,14 +143,13 @@ c	parameter (dt0=5.e-11)   ! initial time step size (s)
 	parameter (JpeV=1.6e-19) ! Joules per eV
 c	parameter ()     ! equilibrium grain temperature (K)
 c	parameter (radius=1.5e-8) ! grain radius (m)
-	parameter (radiusgran=sqrt((1e-14*dustfrac)) ! grain radius (m)
-c dustfrac = <r^2>/(0.1 um)^2
-	parameter (dx=2.*radiusgran) ! grid size = 2*grain radius (m)
+c	parameter (radiusgran=sqrt(1e-14*dustfrac)) ! grain radius (m)
+c	parameter (dx=2.*radiusgran) ! grid size = 2*grain radius (m)
 	parameter (rcs=0.02)	 ! ratio r_contact/radius   Can only be 0.02 or 0.1?
 	parameter (fkapitz=1.0)  ! reduction factor for conductivity
 	parameter (fspec=1.0)  ! reduction factor for specific heat
 	parameter (rlameff=1.0)  ! eff. lambda for radiative cooling (lam/100um)
-	parameter (Qe=0.01*radiusgran/1.e-7/rlameff) ! radiative efficiency
+c	parameter (Qe=0.01*radiusgran/1.e-7/rlameff) ! radiative efficiency
 	parameter (sigSB=5.67e-8)! SB constant (J/m2/s/K^4)
 
 	parameter (Asite=7.e-20) ! area per binding site for CO (m^2)
@@ -190,6 +185,15 @@ c	double precision,dimension(:,:), allocatable :: tmpder1
 c  ++++++
 	parameter (dTemp=10.,Tmax=150.)
 
+	sigadjust = 2.5e-13
+c	corresponds to old radiusgran=50e-10
+	if (incl_locdust) then
+		sigadjust = locdust(zone)
+	end if
+
+	radiusgran=sqrt(1e-14*sigadjust) ! grain radius (m)
+	dx=2.*radiusgran ! grid size = 2*grain radius (m)
+	Qe=0.01*radiusgran/1.e-7/rlameff ! radiative efficiency
 
 	Tend=zonedefT
 	do i = 1, num_mol

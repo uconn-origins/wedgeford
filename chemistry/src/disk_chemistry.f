@@ -218,27 +218,27 @@ C..............................................................................
 	  call getarg(1,iofile)
       open (unit=01,file=iofile,status='old',access='sequential')
         read (01,*)
-        read (01,'(A40)') specs
-        read (01,'(A40)') rates
-        read (01,'(A80)') uvfile
+        read (01,'(A50)') specs
+        print *, specs
+        read (01,'(A50)') rates
+        read (01,'(A90)') uvfile
             uvfile = uvfile( :index(uvfile,'#')-1)
 C            print *, uvfile
-        read (01,'(A80)') xrayfile
+        read (01,'(A90)') xrayfile
             xrayfile = xrayfile( :index(xrayfile,'#')-1)
 C            print *, xrayfile
-        read (01,'(A80)') isrffile
+        read (01,'(A90)') isrffile
             isrffile = isrffile( :index(isrffile,'#')-1)
 C            print *, isrffile
 C        read (01,'(A80)') xrayfilesb
 C            xrayfilesb = xrayfilesb( :index(xrayfilesb,'#')-1)
-        read (01,'(A80)') radionucfile
+        read (01,'(A90)') radionucfile
             radionucfile = radionucfile( :index(radionucfile,'#')-1)
             print *, radionucfile
-        read (01,'(A80)') abun2dfile
+        read (01,'(A90)') abun2dfile
             abun2dfile = abun2dfile( :index(abun2dfile,'#')-1)
 C            print *, abun2dfile
       close (01)
-      print *, "abun2dfile!!!!!!!! ",abun2dfile
 C Read species set from 'specs':
         CALL reads (specs)
         print *, "read specs"
