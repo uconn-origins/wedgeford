@@ -54,22 +54,22 @@ C     &		* exp(-Es/(Tg(zone))))**(-1)*squiggle
 	CALL ispecies('GRAIN        ', ns, s, grindex)
 	IF (timestep .EQ. 1) THEN
 		nr1 = abundances(r1index, timestep)
-		ngr = abundances(grindex, timestep)
+		ngr(zone) = abundances(grindex, timestep)
 	ELSE
 		nr1 = abundances(r1index, timestep-1)
-		ngr = abundances(grindex, timestep-1)
+		ngr(zone) = abundances(grindex, timestep-1)
 	END IF
 
-	IF (ngr .lt. 1.0e-20) THEN
-		ngr = ngr_init
+	IF (ngr(zone) .LT. 1.0e-20) THEN
+		ngr(zone) = ngr_init
 	ENDIF
 
-	IF (nr1 .gt. ngr) THEN
-		calcrate = calcrate * ngr / nr1
+	IF (nr1 .GT. ngr(zone)) THEN
+		calcrate = calcrate * ngr(zone) / nr1
 	ENDIF
 
-	if (nr1.lt.1e-30) calcrate = 0.0
-	if (calcrate .lt. 1e-30) calcrate = 0.0
+	if (nr1.LT.1e-30) calcrate = 0.0
+	if (calcrate .LT. 1e-30) calcrate = 0.0
 
 	grain_abun_check = calcrate
 c	print *, 'H freeze: ', calcrate, 7.5e-5*(Tg(zone)/300.0)**0.5
@@ -159,18 +159,18 @@ C For Td > Eb(H2O/SiO2) = 96 K, have a SiO2 surface surface or 1180.0 K.
 	Ebind_adj = 1180.0 ! For bare silicate.
 
 	if (icetot/nHtot.ge.6e-6) then
-		IF (Td(zone) .le. 25.0) THEN      ! Below 17 K the ice mantles will be dominated by CO
+		IF (Td(zone) .LE. 25.0) THEN      ! Below 17 K the ice mantles will be dominated by CO
 			Ebind_adj = co_v_sil
-		ELSE IF ((Td(zone) .gt. 25.0).and.(Td(zone) .le. 50.0)) THEN  ! If you have a monolayer of CO alone:
-c		ELSE IF (Td(zone) .gt. 30.0) THEN  ! If you have a monolayer of CO alone:
+		ELSE IF ((Td(zone) .GT. 25.0).and.(Td(zone) .le. 50.0)) THEN  ! If you have a monolayer of CO alone:
+c		ELSE IF (Td(zone) .GT. 30.0) THEN  ! If you have a monolayer of CO alone:
 			Ebind_adj = co2_v_sil
-		ELSE IF ((Td(zone) .gt. 50.0).and.(Td(zone) .le. 100.0)) THEN  ! If you have a monolayer of CO alone:
+		ELSE IF ((Td(zone) .GT. 50.0).and.(Td(zone) .le. 100.0)) THEN  ! If you have a monolayer of CO alone:
 			Ebind_adj = h2o_v_sil
 		ELSE
 			Ebind_adj = 1180.0
 		ENDIF
 	endif
-c	if (icetot/nHtot.ge.6e-6) then
+c	if (icetot/nHtot.GE.6e-6) then
 c		Ebind_adj = co_v_sil
 c	else
 c		Ebind_adj = 1180.0
@@ -261,17 +261,17 @@ c      print *, ralpha,rbeta,rgamma,species
 	CALL ispecies('GRAIN        ', ns, s, grindex)
 	IF (timestep .EQ. 1) THEN
 		nr1 = abundances(r1index, timestep)
-		ngr = abundances(grindex, timestep)
+		ngr(zone) = abundances(grindex, timestep)
 	ELSE
 		nr1 = abundances(r1index, timestep-1)
-		ngr = abundances(grindex, timestep-1)
+		ngr(zone) = abundances(grindex, timestep-1)
 	END IF
 
-	IF (ngr .lt. 1.0e-20) THEN
-		ngr = ngr_init
+	IF (ngr(zone) .LT. 1.0e-20) THEN
+		ngr(zone) = ngr_init
 	ENDIF
 
-	calcrate = calcrate * ngr / nr1
+	calcrate = calcrate * ngr(zone) / nr1
 
 	if (nr1.lt.1e-20) calcrate = 0.0
 
@@ -322,23 +322,23 @@ C Calculate the abundance of on-grain species
 c Get the current abundance of grains
 	CALL ispecies('GRAIN        ', ns, s, grindex)
 	IF (timestep .EQ. 1) THEN
-		ngr = abundances(grindex, timestep)
+		ngr(zone) = abundances(grindex, timestep)
 	ELSE
-		ngr = abundances(grindex, timestep-1)
+		ngr(zone) = abundances(grindex, timestep-1)
 	END IF
 
 
 c set the abundance for the first zone (when abundances = 0)
-	IF (n_ice .lt. MINABUN) THEN
+	IF (n_ice .LT. MINABUN) THEN
 		n_ice = n_ice_init
 	ENDIF
-	IF (ngr .lt. MINABUN) THEN
-		ngr = ngr_init
+	IF (ngr(zone) .LT. MINABUN) THEN
+		ngr(zone) = ngr_init
 	ENDIF
 
 c Number of monolayers is nice / ngr / Nsites
 c Abundance of monolayers is then nice / Mlayers = ngr * Nsites
-	compmono = n_ice / ngr / Nsites
+	compmono = n_ice / ngr(zone) / Nsites
 
 	RETURN
 	END
@@ -371,14 +371,14 @@ c Get the current abundance of grains
 	CALL ispecies(species, ns, s, r1index)
 
 	IF (timestep .EQ. 1) THEN
-		ngr = abundances(grindex, timestep)
+		ngr(zone) = abundances(grindex, timestep)
         nr1 = abundances(r1index, timestep)
 	ELSE
-		ngr = abundances(grindex, timestep-1)
+		ngr(zone) = abundances(grindex, timestep-1)
         nr1 = abundances(r1index, timestep-1)
 	END IF
 
-	occupyice = nr1/ngr
+	occupyice = nr1/ngr(zone)
 
 	if (nr1 .lt. 1e-30) occupyice = 0.0
 
@@ -1052,22 +1052,22 @@ c	self_shield_CO = self_shield_CO * etau
 
 
 	IF (shieldtest) THEN
-		if (iso .eq. 12) then
+		if (iso .EQ. 12) then
 			write(2, 112) iso,zcm(zone),self_shield_CO,
      &			colden_co_tot(timestep), colden_h2_tot_12(timestep),
      &			thetatot, etau, nCO, timestep
 		end if
-		if (iso .eq. 13) then
+		if (iso .EQ. 13) then
 			write(2, 112) iso,zcm(zone), self_shield_CO,
      &			colden_13co_tot(timestep), colden_h2_tot_13(timestep),
      &			thetatot, etau, nCO, timestep
 		end if
-		if (iso .eq. 18) then
+		if (iso .EQ. 18) then
 			write(2, 112) iso,zcm(zone), self_shield_CO,
      &			colden_c18o_tot(timestep), colden_h2_tot_18(timestep),
      &			thetatot, etau, nCO, timestep
 		end if
-		if (iso .eq. 38) then
+		if (iso .EQ. 38) then
 			write(2, 112) iso,zcm(zone), self_shield_CO,
      &			colden_13c18o_tot(timestep), colden_h2_tot_1318(timestep),
      &			thetatot, etau, nCO, timestep
@@ -1078,7 +1078,7 @@ c	self_shield_CO = self_shield_CO * etau
 
  112     format(1x,f3.0,2x,7(1x,e8.3),2x, i4)
 
-	if (self_shield_CO .lt. 0) then
+	if (self_shield_CO .LT. 0) then
 		print *, 'You broke the code!! selfshield_CO: ',self_shield_CO
 		if (smallcol .eq. 1) then
 		     self_shield_CO = 0.0 !! LIC?
@@ -1588,7 +1588,7 @@ C..............................................................................
       implicit double precision (a-h, o-z)
       PARAMETER (NMAX=100)
       DIMENSION X(N),Y(N),Y2(N),U(NMAX)
-      IF (YP1.gt..99E30) THEN
+      IF (YP1.GT..99E30) THEN
         Y2(1)=0.
         U(1)=0.
       ELSE
@@ -1602,7 +1602,7 @@ C..............................................................................
         U(I)=(6.*((Y(I+1)-Y(I))/(X(I+1)-X(I))-(Y(I)-Y(I-1))
      *      /(X(I)-X(I-1)))/(X(I+1)-X(I-1))-SIG*U(I-1))/P
 11    CONTINUE
-      IF (YPN.gt..99E30) THEN
+      IF (YPN.GT..99E30) THEN
         QN=0.
         UN=0.
       ELSE
@@ -1626,9 +1626,9 @@ C..............................................................................
       DIMENSION XA(N),YA(N),Y2A(N)
       KLO=1
       KHI=N
-1     IF (KHI-KLO.gt.1) THEN
+1     IF (KHI-KLO.GT.1) THEN
         K=(KHI+KLO)/2
-        IF(XA(K).gt.X)THEN
+        IF(XA(K).GT.X)THEN
           KHI=K
         ELSE
           KLO=K
@@ -1688,37 +1688,37 @@ c sum the abundance of on-grain species
 
 	CALL ispecies('GRAIN        ', ns, s, grindex)
 	IF (timestep .EQ. 1) THEN
-		ngr = abundances(grindex, timestep)
+		ngr(zone) = abundances(grindex, timestep)
 	ELSE
-		ngr = abundances(grindex, timestep-1)
+		ngr(zone) = abundances(grindex, timestep-1)
 	END IF
 
 C catch for first run, before any grain species have been calculated
 C (before first solver call).
-	IF (n_ice .lt. 1.0e-20) THEN
+	IF (n_ice .LT. 1.0e-20) THEN
 		n_ice = n_ice_init
 	ENDIF
-	IF (ngr .lt. 1.0e-20) THEN
-		ngr = ngr_init
+	IF (ngr(zone) .LT. 1.0e-20) THEN
+		ngr(zone) = ngr_init
 	ENDIF
 
 	!a_gr = rgr*freezeeffic**(-1.0/1.5)  ! The freezeeffic term accounts for grain growth (small freeze effic, bigger grains, but less surf area).
 	Mlayer = 4 * pi * (rgr*1e-4)**2 * sigadjust / ((3e-8)**2)
-	numlayers = n_ice / ngr / Mlayer
+	numlayers = n_ice / ngr(zone) / Mlayer
 	print *, '# of monolayers = ', numlayers
 
 C perc_ice = n(i) / n_ice
 C fac = ngr * perc_ice / n(i), perc_ice = n(i) / n_ice
 C fac = PDadjust
-	IF (numlayers .gt. 1.0) THEN
-		PDadjust = ngr / n_ice
+	IF (numlayers .GT. 1.0) THEN
+		PDadjust = ngr(zone) / n_ice
 c		if (perc_ice(rspec(i,1)) .lt. 1e-3) fac = 1.0e-3
 	ELSE
-		PDadjust = ngr * numlayers / n_ice
+		PDadjust = ngr(zone) * numlayers / n_ice
 c		if (perc_ice(rspec(i,1)) .lt. 5.0e-5) fac = 5.0e-5
 	ENDIF
 
-	IF (numlayers .lt. 1.0) THEN
+	IF (numlayers .LT. 1.0) THEN
 		Madjust = 1.0
 	ELSE
 		Madjust = 1.0 / numlayers

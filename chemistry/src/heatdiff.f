@@ -25,7 +25,7 @@ c	DOUBLE PRECISION nh2(n_mols), theta(n_mols)
 c	CHARACTER*13 dataarr(n_mols,3)
 	REAL dataarr(n_mols,3),dataarr_rc(n_mols,3)
 	INTEGER r1index, grindex,p
-	DOUBLE PRECISION nr1, ngr, Numr1(n_mols)
+	DOUBLE PRECISION nr1, Numr1(n_mols)
 	DOUBLE PRECISION bind_factor,zonedefT
 	PARAMETER (bind_factor = 1.47)
 	DOUBLE PRECISION polint,numtot
@@ -58,12 +58,12 @@ C Calculate grain species:
 		CALL ispecies('GRAIN        ', ns, s, grindex)
 		IF (itime .le. 2) THEN
 			nr1 = abundances(r1index, timestep)
-			ngr = abundances(grindex, timestep)
+			ngr(zone) = abundances(grindex, timestep)
 		ELSE
 			nr1 = abundances(r1index, timestep-1)
-			ngr = abundances(grindex, timestep-1)
+			ngr(zone) = abundances(grindex, timestep-1)
 		END IF
-		Numr1(imol) = nr1/ngr
+		Numr1(imol) = nr1/ngr(zone)
 		numtot = numtot + Numr1(imol)
 		dataarr(imol,3) = Numr1(imol)
 c		write(*,*) species,itime,Numr1(imol)
@@ -126,8 +126,8 @@ c	1/21/12: limit number of molecules that are available to evaporate
 	real Edvol,Edep,Rad,Tspot,time,dt,Tdmin,Eevap, Erad,dEevap
 	real dErad,dEheat,rCv,Hcap,therm_cond,sp_heat,alpha,beta
 	real game,game_mol,gamr,Eheat,Tdiff,Tdx,Tdxi,Ttarg,Tdiffi
-	double precision zonedefT, sigadjust
-	integer ngr, nhot, nmol,num_mol,i,imol,iwcount,ct, imoln
+	double precision zonedefT
+	integer numgr, nhot, nmol,num_mol,i,imol,iwcount,ct, imoln
 	real mirror, dt0, EdeV
 
 	sigadjust = 2.5e-13
@@ -162,10 +162,10 @@ c dustfrac = <r^2>/(0.1 um)^2
 	parameter (Tbind=960.)	 ! binding energy for CO (K)
 	parameter (kB=1.38e-23)  ! Boltzmann constant (W/K)
 
-	parameter (ngr=101, nhot=51)
+	parameter (numgr=101, nhot=51)
 	parameter (nmol=5)
 
-	real Tmp(ngr),Tmpn(ngr),Acf(ngr),Bcf(ngr),Ccf(ngr),Dcf(ngr)
+	real Tmp(numgr),Tmpn(numgr),Acf(numgr),Bcf(numgr),Ccf(numgr),Dcf(numgr)
 	real v0_in(nmol), Tbind_in(nmol),tempHotOld
 	real amw(nmol), bind_factor
         real Revap(nmol),Nevap(nmol),Evap(nmol),Nevapcent(nmol)
@@ -246,7 +246,7 @@ c energy lost to radiation?
 
 
 c     	Initialize grain temperature array
-	do i=1,ngr
+	do i=1,numgr
 		Tmp(i)=Tend
 	enddo
 c	Tmp(nhot)=Tspot
@@ -278,7 +278,7 @@ c	write(*,*) 'prehra'
 
 c      	    Setup heat diffusion coefficient arrays
 c        write(*,*) 'wee1a'
-	    do i=1,ngr
+	    do i=1,numgr
 
 			rCv = sp_heat(Tmp(i),fspec)
 			Hcap=grvol*rCv
@@ -306,15 +306,15 @@ c			;write(*,*) 'wee1b',i
 					Ccf(1) = -2.*alpha
 					Dcf(1) = Tmp(1) - beta*(game+gamr)
 				endif
-			elseif (i.eq.ngr) then
-	    	    Bcf(ngr) = (1.+2.*alpha)
-	    	    Ccf(ngr) = 0.		! not used in Tridag
+			elseif (i.eq.numgr) then
+	    	    Bcf(numgr) = (1.+2.*alpha)
+	    	    Ccf(numgr) = 0.		! not used in Tridag
 				if (mirror.eq.0) then 	! fixed end temperature
-	    	        Acf(ngr) = -alpha
-	    	        Dcf(ngr) = Tmp(ngr) + alpha*Tend - beta*(game+gamr)
+	    	        Acf(numgr) = -alpha
+	    	        Dcf(numgr) = Tmp(numgr) + alpha*Tend - beta*(game+gamr)
 				else 			! zero derivative (insulated)
-	    	        Acf(ngr) = -2.*alpha
-	    	        Dcf(ngr) = Tmp(ngr) - beta*(game+gamr)
+	    	        Acf(numgr) = -2.*alpha
+	    	        Dcf(numgr) = Tmp(numgr) - beta*(game+gamr)
 				endif
 			else
 				Acf(i) = -alpha
@@ -339,7 +339,7 @@ c			if (i.eq.nhot) write(*,*) 'Evap: ', game*dt,'Erad: ', gamr*dt
 
 c	    Now solve the set of linear equations
 c	    cwrite(*,*) 'rahh!'
-	    call tridag(Acf,Bcf,Ccf,Dcf,Tmpn,ngr)
+	    call tridag(Acf,Bcf,Ccf,Dcf,Tmpn,numgr)
 
 	    time=time+dt
 
@@ -347,7 +347,7 @@ c	    Test if done?
 
 	    Tdiff=0.
 
-	    do i=1,ngr
+	    do i=1,numgr
 		     Tdiffi = abs(Tmp(i)-Tmpn(i))
 		     Tdiff = Tdiff + Tdiffi**2
 		     Tmp(i)=Tmpn(i)
@@ -357,7 +357,7 @@ c	    Test if done?
 
 	    Tdx=0.
 
-	    do i=1,ngr-1
+	    do i=1,numgr-1
 		     Tdxi = abs(Tmp(i+1)-Tmpn(i))
 		     Tdx = Tdx + Tdxi**2
 	    enddo
