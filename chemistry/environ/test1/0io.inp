@@ -1,8 +1,0 @@
-# input & output files:
-rspecies_herb0308gr.dat 	 # file with species
-rreacs_herb0308gr.dat 	 # file with reactions
-uv_photons_m1_test.dat 	 # file with uvfield
-xray_photons_m1_test.dat 	 # file with xrfield
-None 	 # file with ISRF 
-None 	 # Radionuclide Ion Rate
-{} 	 # initial 2D abundance file 

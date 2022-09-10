@@ -7,8 +7,26 @@ from scipy.interpolate import griddata
 from matplotlib import rc
 from matplotlib import cm
 
+from sys import platform
+
 from . units import *
 from . outputs import *
+
+
+if platform == 'linux':
+    font_files = matplotlib.font_manager.findSystemFonts(fontpaths='/usr/share/fonts/', fontext='ttf')
+    for font_file in font_files:
+        try:
+            matplotlib.font_manager.fontManager.addfont(font_file)
+        except:
+            pass
+    #matplotlib.font_manager.FontProperties(fname='/home/akuznetsova/.local/share/fonts/Unknown Vendor/TrueType/Times/Times_Regular.ttc')
+else:
+    font_files = matplotlib.font_manager.findSystemFonts(fontpaths='/Users/aleksandra/Library/Fonts/',fontext='ttf')
+    #matplotlib.font_manager.FontProperties(fname='/Users/aleksandra/Library/Fonts/Lato-Regular.ttf')
+    for font_file in font_files:
+        matplotlib.font_manager.fontManager.addfont(font_file)
+
 
 
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
@@ -16,7 +34,7 @@ rc('text', usetex=False)
 #rc('mathtext', fontset = 'stixsans')
 rc('axes', linewidth = 1.25)
 
-rc('mathtext', **{'fontset':'custom', 'sf':'stixsans','default':'sf','fallback_to_cm':'True'})
+rc('mathtext', **{'fontset':'custom', 'sf':'sans','default':'sf','fallback':'cm'})
 
 SMALL_SIZE = 10
 MEDIUM_SIZE = 11
@@ -49,7 +67,7 @@ def plot_slice(output,rho,log=True,average = True, **plot_params):
             rho2d = rho[:,:,0]
     else:
         rho2d = rho
-    if np.shape(rho) != np.shape(R_CYL[:,:,0]):
+    if np.shape(rho2d) != np.shape(R_CYL[:,:,0]):
         rho2d = rho2d.T
     else:
         rho2d = rho2d
@@ -101,14 +119,12 @@ def plot_components(output,fluid=0,rlim=400):
         if c == 'Disk':
             for j in np.arange(1,4):
                 a.plot(model.r, model.H(model.r)*j,color='white',lw=1,label=str(j)+'H') #plot disk scale heights
-                #a.legend()
         elif c == "Envelope":
             for j in np.linspace(np.radians(model.env['theta_min']),pi/2.,8):
                 streamline = model.stream(th0=j,shock=False)
                 r = streamline['path'][0]
                 th = streamline['path'][1]
                 l = a.plot(r*np.sin(th),r*np.cos(th),color='white',ls='dashed',lw=1) #plot streamlines
-            #a.legend(l,['streamlines'])
         elif c == "Disk + Envelope" and model.env['shock'] == True:
             xpts = []
             ypts = []
@@ -170,17 +186,21 @@ def plot_dustRT(output,rlim=400): #convenience function to plot the dust radiati
     f,ax = subplots(1,2,constrained_layout=True)
     f.set_size_inches(6,4)
     if output.rho == {}:
-        output.rho2D()
+        output.read_rho()
     if output.T == {}:
-        output.T2D()
-    c = ax[0].contourf(X, Z, np.log10(output.rho['dust1'].T + output.rho['dust2'].T),levels=np.arange(model.rhomin,model.rhomax,1),extend='both')
+        output.read_Tdust()
+    toplot_rho = np.log10(output.calc_rho2D('dust')).T
+    toplot_T = output.calc_T2D('dust').T
+    
+    c = ax[0].contourf(X, Z, toplot_rho,levels=np.arange(model.rhomin,model.rhomax,1),extend='both')
     ax[0].set_xlabel('r [au]')
     ax[0].set_ylabel('z [au]')
     ax[0].set_title('Input Model Dust Density',fontsize=11)
     cb = colorbar(c,ax=ax[0],location='bottom',aspect=10,ticks=np.array(c.levels[::2]).astype(int))
     cb.set_label(r'$\rho$ [$\mathrm{g/cm^{-3}}$]')
     from scipy.ndimage import gaussian_filter
-    smooth_T = gaussian_filter(output.T['dust'].T, sigma=[4,1.5])
+    
+    smooth_T = gaussian_filter(toplot_T ,sigma=[4,1.5])
     c2 = ax[1].contourf(X, Z, smooth_T,levels=np.linspace(5,125,19),cmap='twilight_shifted',extend='both')
     c3 = ax[1].contour(X, Z, smooth_T,levels=[10,20,30,60],colors='black',linewidths=1,linestyles=['solid','dashed','dashdot','dotted'])
     c4 = ax[0].contour(X, Z, smooth_T,levels=[10,20,30,60],colors='white',linewidths=1,linestyles=['solid','dashed','dashdot','dotted'])
@@ -190,6 +210,7 @@ def plot_dustRT(output,rlim=400): #convenience function to plot the dust radiati
         fmt[l] = str(int(l))
     ax[1].clabel(c3, c3.levels,fmt=fmt ,inline=True,fontsize=8)
     ax[0].clabel(c4, c4.levels,fmt=fmt ,inline=True,fontsize=8)
+    
     streamline = model.stream(th0=np.radians(model.env['theta_min']),shock=False)
     r = streamline['path'][0]
     th = streamline['path'][1]
@@ -211,59 +232,41 @@ def plot_flux_components(output,fname=''):
     model = output.m
     if os.getcwd() != model.outdir:
         os.chdir(model.outdir)
-    opts = output
-    opts.rad_data = rpy.radsources.radmc3dRadSources(ppar=model.radmcpar,grid=grid)
-    opts.rad_data.nstar = 1
-    opts.rad_data.getStarSpectrum(grid=opts.data.grid,ppar=model.radmcpar)
-    fnu_s = opts.rad_data.fnustar
-    lam = opts.rad_data.grid.wav
-    nu = c/(1e-4*lam)
-    nufnu_s = np.reshape(nu,np.shape(nu)[0])*np.reshape(fnu_s,np.shape(fnu_s)[0])
+    accrate = model.star['accrate']
+    wav,freq = output.wav, output.freq
+    wav,fnu_bb = calc_blackbody_spectrum(model,wav = wav)
+    wav,fnu_uv = calc_accretion_spectrum_uv(model,wav=wav,accrate=accrate)
+    
+    if model.rad['xray'] == True:
+        wav,fnu_xray = calc_accretion_spectrum_xray(model,wav=wav,accrate=accrate)
+    else:
+        fnu_xray = np.zeros_like(fnu_bb)
+        
+    flya_peak = model_Lya_line(model,wav=wav,fLya=model.rad['fLya'])
+    fnu_uv[np.argmin(np.abs(wav - lam_lya))] += flya_peak
+    
+    fnu_tot = fnu_bb + fnu_uv + fnu_xray
+    
     f,ax= subplots(1,constrained_layout=True)
     f.set_size_inches(6,3)
-    ax.loglog(lam, nufnu_s,label='Star',lw=2,color='navy')
-    ax.set_xlim(1.2e-4,1.2e4)
     
-    opts.rad_data.getSpotSpectrum(grid=opts.data.grid,ppar=model.radmcpar)
-    fnu_acc = opts.rad_data.fnuspot
-    nufnu_acc = np.reshape(nu,np.shape(nu)[0])*np.reshape(fnu_acc,np.shape(fnu_acc)[0])
-    ax.loglog(lam, nufnu_acc,label='UV Accretion',lw=2,color='skyblue')
+    ax.loglog(wav,fnu_bb*freq,label='Star',lw=2,color='navy')
+    ax.loglog(wav, fnu_uv*freq,label='UV Accretion',lw=2,color='skyblue')
     
-    opts.rad_data.getAccdiskSpectra(grid=opts.data.grid,ppar=model.radmcpar)
-    fnu_d = opts.rad_data.fnuaccdisk
-    nufnu_d = np.reshape(nu,np.shape(nu)[0])*np.reshape(fnu_d,np.shape(fnu_d)[0])
-    ax.loglog(lam, nufnu_d,label='Viscous Disk',lw=2,color='maroon')
-    
-    opts.rad_data.getAccdiskTemperature(grid=opts.data.grid,ppar=model.radmcpar)
-    
-    opts.rad_data.incl_accretion=True
-    res=opts.rad_data.getTotalLuminosities(readInput=False)
-    
-    
-    xlam, xfnu = insert_xray_radiation(model,write=False)
-    xnu = c/(1e-4*xlam)
-    
-    ax.loglog(xlam, xfnu*xnu, label='X-ray Accretion',lw=2,color='violet')
-    
-    LX = -np.trapz((4*pi*pc**2)*xfnu, x = xnu)
-    
-    full_sed = nufnu_s+nufnu_acc+nufnu_d
-    
-    full_sed[lam <= xray_max] += xfnu*xnu
-    
-    ax.loglog(lam,  full_sed, label='SED (estimated)',color='black',ls='dashed',lw=1)
+    if model.rad['xray'] == True:
+        ax.loglog(wav, fnu_xray*freq, label='X-ray Accretion',lw=2,color='violet')
+        ax.set_xlim(xray_min,1e3)
+    else:
+        ax.set_xlim(xray_max,1e3)
+        
+    ax.loglog(wav,  freq*fnu_tot, label='total',color='black',ls='dashed',lw=1)
+    ax.set_ylim(np.amax(freq*fnu_bb)*1e-8 , np.amax(freq*fnu_bb)*5)
     ax.set_xlabel(r'$\log \ \lambda \ \mathrm{[\mu m]}$')
     ax.set_ylabel(r'$\log \ \nu F_{\nu} \ \mathrm{[ergs \ cm^{-2} \ s^{-1}]}$')
     ax.set_title(r'$T_{\rm s}$' + ' = {} K,'.format(model.star['Ts']) + r' $\ \dot{M}_{\rm s}$' + '= {} '.format(model.star['accrate']) + r'$\mathrm{M_{\odot} \ yr^{-1}}$',size=12)
     ax.legend(loc=1)
-    medy = res['lnu_star']/(4*pi*pc**2)
-    ax.set_ylim(medy/(10**5),medy*10**2)
-    xex = ax.get_xlim()
-    yex = ax.get_ylim()
-    ax.text(xex[0]*2,yex[1]/10,'Lstar: {:.3f} Lsun'.format(res['lnu_star'][0]/Lsun))
-    ax.text(xex[0]*2,yex[1]/50,'Lacc: {:.3f} Lsun'.format(res['lnu_spot']/Lsun))
-    ax.text(xex[0]*2,yex[1]/250,'Ldisk: {:.3f} Lsun'.format(res['lnu_accdisk']/Lsun))
-    ax.text(xex[0]*2,yex[1]/1250,'LX: {:.3e} Lsun'.format(LX/Lsun))
+    
+    
     
 def plot_shock_model(output):
     model=output.m
@@ -423,88 +426,67 @@ def save_dustRT(output):
         f.savefig(pp,format='pdf')
 
     
-def plot_radiation_field(output,rlim=400):
+def plot_radiation_field(output,rlim=400, field='uv'):
     model = output.m
-    f,ax = subplots(1,2,constrained_layout=True)
-    f.set_size_inches(6,2.5)
-    sca(ax[0])
-    if 'uv' not in output.J.keys():
-        output.Jnu(field='uv')
-    if 'xray' not in output.J.keys():
-        output.Jnu(field='xray')
-    if 'uv_int' not in output.J.keys():
-        output.J['uv_int'] = 4*pi*output.integrate_intensity(field='uv',photons=True)
-    if 'xray_int' not in output.J.keys():
-        output.J['xray_int']  = 4*pi*output.integrate_intensity(field='xray',photons=True)
-    plot_slice(output,rho=output.J['uv_int'].T,log=True,levels=np.linspace(1,12,12),cmap='BuPu_r')
-    sca(ax[1])
-    im = plot_slice(output,rho=output.J['xray_int'].T,log=True,levels=np.linspace(1,12,12),cmap='BuPu_r')
+    if field not in output.J.keys():
+        output.calc_Jint(field=field)
+    f,ax = subplots(1, constrained_layout=True)
+    sca(ax)
+    im = plot_slice(output,rho=np.average(output.J[field]['J_phot'],axis=-1),log=True,levels=np.linspace(1,12,12),cmap='BuPu_r')
     cb=colorbar(im,ax=ax)
     
     cb.set_label(r'$\log$ photons [$\mathrm{cm^{-2} \ s^{-1}}$]')
-    ax[0].set_ylabel('z [au]')
+    ax.set_ylabel('z [au]')
     
-    ax[0].set_title('UV')
-    ax[1].set_title('X-ray')
-    for a in ax:
-        a.set_xlabel('r [au]')
-        a.set_xlim(0,rlim)
-        a.set_ylim(0,rlim)
+    ax.set_title(field)
+    ax.set_xlabel('r [au]')
+    ax.set_xlim(0,rlim)
+    ax.set_ylim(0,rlim)
         
         
 def plot_all_temp(output,rlim=200):
     pp = {'levels':np.linspace(0.5,3,51),'cmap':'twilight_shifted','extend':'both'}
     f,ax = subplots(2,2,constrained_layout=True)
     f.set_size_inches(6,6)
-    if 'gas' not in output.T.keys():
-        calc_gas_T(output)
-    sca(ax[0,0])
-    im=plot_slice(output,rho=output.T['uv'],**pp)
-
-    sca(ax[0,1])
-    im=plot_slice(output,rho=output.T['shock'],**pp)
-
-    sca(ax[1,0])
-    im=plot_slice(output,rho=output.T['dust'].T,**pp)
-
-    sca(ax[1,1])
-    im=plot_slice(output,rho=output.T['gas'],**pp)
+        
+    for a, temp in zip([ax[0,0],ax[0,1],ax[1,0],ax[1,1]], ['uv','shock','dust','gas']):
+        sca(a)
+        toplot_T = output.calc_T2D(temp)
+        im=plot_slice(output,rho=toplot_T.T,**pp)
+        title('T [{}]'.format(temp))
+        a.axis('scaled')
+        a.set_xlim(0,rlim)
+        a.set_ylim(0,rlim)
+    
 
     cb = colorbar(im,ax=ax,location='top',shrink=0.75)
     cb.set_label(r'$\log$ T [K]')
     ticks = np.log10([5,10,25,50,100,250,500,1000,2000,4000])
     cb.set_ticks(ticks)
     cb.set_ticklabels(['5','10','25','50','100','250','500','1000','2000','4000'])
+    
     ax[0,0].set_ylabel('z [au]')
     ax[1,0].set_ylabel('z [au]')
     ax[1,0].set_xlabel('r [au]')
     ax[1,1].set_xlabel('r [au]')
 
-    ax[0,0].set_title('T [UV]')
-    ax[0,1].set_title('T [shock]')
-    ax[1,0].set_title('T [dust]')
-    ax[1,1].set_title('T [gas]')
-    for a in ax[:,0]:
-        a.axis('scaled')
-        a.set_xlim(0,rlim)
-        a.set_ylim(0,rlim)
-
-    for a in ax[:,1]:
-        a.axis('scaled')
-        a.set_xlim(0,rlim)
-        a.set_ylim(0,rlim)
         
 def save_heRT(output):
     from matplotlib.backends.backend_pdf import PdfPages
     os.chdir(output.m.outdir)
     with PdfPages('heRT.pdf') as pp:
-        plot_radiation_field(output,rlim=output.m.grid['max'][0])
+        plot_radiation_field(output,rlim=output.m.grid['max'][0],field='uv')
         f = gcf()
         f.savefig(pp,format='pdf')
+        
+        if output.m.rad['xray'] == True:
+            plot_radiation_field(output,rlim=output.m.grid['max'][0],field='xray')
+            f = gcf()
+            f.savefig(pp,format='pdf')
         plot_all_temp(output,rlim=output.m.grid['max'][0])
         f = gcf()
         f.savefig(pp,format='pdf')
-        plot_opacities(output,xray=True)
+        plot_opacities(output,xray=output.m.rad['xray'])
         f = gcf()
         f.savefig(pp,format='pdf')
         

@@ -8,10 +8,80 @@ from . units  import *
 from . radiation import *
 from . dust import *
 
+"""
+Functions meant for writing the input files for radmc3d
 
+"""
 
-####### basic spatial grid/density info for thermal MC
+def _scalarfieldWriter(model, data=None, fname=''):
+    """Writes a scalar field to a file.
+
+        Parameters
+        ----------
+
+        data   : ndarray
+                Scalar variable to be written
+
+        fname  : str
+                Name of the file containing a scalar variable
+
+        """
+    nx,ny,nz = model.grid['N']
+    with open(fname, 'w') as wfile:
+        if len(data.shape) == 3:
+            hdr = np.array([1, nx * ny * nz], dtype=int)
+            hdr.tofile(wfile, sep=" ", format="%d\n")
+            #need fortran indexing
+            data = data.ravel(order='F')
+            data.tofile(wfile, sep=" ", format="%.9e\n")
+
+        elif len(data.shape) == 4:
+            hdr = np.array([1, nx * ny * nz, data.shape[3]], dtype=int)
+            hdr.tofile(wfile, sep=" ", format="%d\n")
+            #need fortran indexing
+            data = data.ravel(order='F')
+            data.tofile(wfile, sep=" ", format="%.9e\n")
+        else:
+            raise ValueError('Incorrect shape. Data stored in a regular grid should have 3 or 4 dimensions'
+                                         + ' with the fourth dimension being the dust species. '
+                                         + ' The data to be written has a dimension of ' + ("%d" % len(data.shape))
+                                         + '\n No data has been written')
+            
+            
+def write_wavelength(model,wav = None, fname=''):
+    """Writes the wavelength grid to a file (e.g. wavelength_micron.inp).
+
+    Parameters
+        ----------
+    wav: optional
+        wavelengths to write to file, if omitted, a template wavelength will be read in from the templates directory
+        
+    fname  : str, optional
+        File name into which the wavelength grid should be written. If omitted 'wavelength_micron.inp'
+                 will be used
+    """
+    if wav is None:
+        templates_dir = model.models_dir+'templates/'
+        wav,freq = read_wavelength(fname=templates_dir+'wavelength_micron.inp')
+    
+    if fname == '':
+        fname = model.outdir+ 'wavelength_micron.inp'
+    nwav = len(wav)
+    print('Writing ' + fname)
+    
+    with open(fname, 'w') as wfile:
+        wfile.write('%d\n' % nwav)
+        for ilam in range(nwav):
+            wfile.write('%.9e\n' % wav[ilam])
+    
+
 def write_grid(model):
+    """ writes the spatial grid file for radmc3d, a 3d spherical grid with mirror symmetry
+    Parameters
+    ------------
+    model: model class object to write grid information from 
+
+    """
     iformat = 1
     grid_style = 0 # for "regular grid"
     coordsystem = 101 # between 1 and 200 for a spherical grid
@@ -22,126 +92,160 @@ def write_grid(model):
     th_edges = model.coords[1]
     phi_edges = model.coords[2]
     header = str(iformat) + '\n' + str(grid_style) + '\n' + str(coordsystem) + '\n' + str(gridinfo) + '\n' + str(incl_x) + '\t' + str(incl_y) + '\t' + str(incl_z) + '\n' + str(nx) + '\t' + str(ny) + '\t' + str(nz) + '\n'
+    print('writing amr_grid.inp')
     with open(model.outdir+"amr_grid.inp","w") as f:
         f.write(header)
         for x,fmt  in zip([r_edges,th_edges,phi_edges],['%13.6e','%17.10e','%13.6e']):
             x.tofile(f, sep= '\t', format=fmt)
             f.write('\n')
             
-def write_dust_density(model,envelope=True):
-    if envelope == True:
-        small_dust = model.rho_embedded(fluid=1)
-        large_dust = model.rho_embedded(fluid=2)
-    else:
-        small_dust = model.rho_disk(fluid=1)
-        large_dust = model.rho_disk(fluid=2)
-    Nr = np.prod(np.array(model.grid['N']))
-    with open(model.outdir+'dust_density.inp','w+') as f:
-        f.write('1\n')                   # Format number
-        f.write('%d\n'%(Nr))             # Number of cells
-        f.write('2\n')                   # Number of dust species
-        for dust in [small_dust,large_dust]:
-            data = dust.swapaxes(0,1).ravel(order='F') # radmc assumes 'ij' indexing for some reason, Create a 1-D view, fortran-style indexing
-            data.tofile(f, sep='\n', format="%13.6e")
-            f.write('\n')
-    f.close()
-    
-####### basic wavelength, radiation source information for thermal MC
-                     
-def write_wavelength(model,fname='',lam=[]):
-    templates_dir = model.models_dir+'templates/'
-    if os.getcwd() != templates_dir:
-        os.chdir(templates_dir)
-    grid_data = rpy.reggrid.radmc3dGrid()
-    grid_data.readWavelengthGrid()
-    if os.getcwd() != model.outdir:
-        os.chdir(model.outdir)
-    xlam = np.logspace(np.log10(xray_min),np.log10(xray_max),20)
-    if size(lam)==0:
-        new_lam = np.append(xlam,grid_data.wav) 
-    else:
-        new_lam = lam
-    grid_data.wav = new_lam
-    grid_data.nwav = grid_data.wav.shape[0]
-    grid_data.freq = c / grid_data.wav * 1e4
-    grid_data.nfreq = grid_data.nwav
-    grid_data.writeWavelengthGrid(fname=fname)
-    os.chdir(model.parent_dir)
-    
-def write_star(model):
-    if os.getcwd() != model.outdir:
-        os.chdir(model.outdir)
-    if os.path.exists('wavelength_micron.inp') != True:
-        write_wavelength(model)
-    grid = rpy.reggrid.radmc3dGrid()
-    grid.readWavelengthGrid()
-    rad_data = rpy.radsources.radmc3dRadSources(ppar=model.radmcpar,grid=grid)
-    rad_data.incl_accretion = True
-    if os.getcwd() != model.outdir:
-        os.chdir(model.outdir)
-    rad_data.writeStarsinp(ppar=model.radmcpar) #writes a stars.inp in the new directory
-    os.chdir(model.parent_dir)
-    
-def calc_ISRF(model,lam=[],write=True):
-    from scipy.interpolate import interp1d
-    if os.getcwd() != model.outdir:
-        os.chdir(model.outdir)
-    if os.path.exists('wavelength_micron.inp') != True:
-        write_wavelength(model)
-    grid_data = rpy.reggrid.radmc3dGrid()
-    grid_data.readWavelengthGrid()
-    gnorm = model.rad['G0']
-    #goal is to write the ISRF onto the same wavelength grid as the stellar source
-    if size(lam) == 0:
-        lam = grid_data.wav
-        nu = grid_data.freq
-    else:
-        nu = c/(lam*1e-4)
-    templates_dir = model.models_dir+'templates/'
-    os.chdir(templates_dir)
-    ### works right now with the current format of the ISRF file
-    ### if you want a different ISRF as the basis, should rewrite for other scalings
-    fname='ISRF.csv'
-    ISRF = np.loadtxt('ISRF.csv',skiprows=1,delimiter=',')
-    lami = ISRF[:,0]#micron
-    flam = ISRF[:,1]/(4*pi) #ergs/cm2/s/micron/str
-    fnu_ = flam*(lami*(lami*1e-4))/c #conversion to ergs/cms2/s/Hz/str
-    Fnu = interp1d(lami, fnu_,fill_value='extrapolate')
-    fnu = np.clip(Fnu(lam),a_min=np.amin(fnu_)*1e-2,a_max=None)
-    isrf_index = (lam > 0.0912) & (lam < 2.4) #comparing G0
-    Ftot = np.trapz(fnu[isrf_index][::-1],x=nu[isrf_index][::-1])
-    norm = gnorm*G0/Ftot
-    fnu *= norm #scales ISRF by how many G0s you want.
-    if write == True:
-        with open(model.outdir+'external_source.inp','w') as f:
-            f.write('2 \n')
-            f.write(str(len(lam))+ '\n')
-            f.write('\n')
-            lam.tofile(f, sep='\n', format="%13.6e")
-            f.write('\n')
-            f.write('\n')
-            fnu.tofile(f, sep='\n', format="%13.6e")
-    os.chdir(model.parent_dir)
-    return lam,fnu
+            
+def write_dust_density(model,envelope=True,rhodust = None):
+    """ writes the dust density of small and large dust components in a dust_density.inp file
+    for radmc3d
 
-def write_viscous_heatsource(model,write=True):
-    if os.getcwd() != model.outdir:
-        os.chdir(model.outdir)
-    grid = rpy.reggrid.radmc3dGrid()
-    grid.readWavelengthGrid()
-    grid.readSpatialGrid()
-    rad_data = rpy.radsources.radmc3dRadSources(ppar=model.radmcpar,grid=grid)
-    rad_data.nstar = 1
-    rad_data.incl_accretion = True
-    rad_data.getAccdiskTemperature(grid=grid,ppar=model.radmcpar)
-    tacc = rad_data.tacc
-    facc = sigsb*(tacc**4)
-    lacc = facc/(np.sqrt(2.*pi)*model.H(model.r)*AU)
-    lacc[model.r > model.env['Rc']] = np.amin(lacc)
-    lacc[model.r< model.disk['R0'][0]] = np.amin(lacc)
-    R_CYL,Z_CYL = model.make_rz()
-    lacc = np.reshape(lacc,(1,np.shape(lacc)[0],1))
-    D_disk = lacc*np.exp(-0.5*(Z_CYL/model.H(R_CYL))**2)
+    Parameters
+    ----------
+
+    model: model class object to write densities from
+
+    envelope: boolean, if True then write the full density distribution of envelope + disk
+            if False, writes the densities of the disk only
+            
+    rhodust: if None, densities from model, otherwise, custom array will be written
+    """
+    if rhodust is None:
+        if envelope == True:
+            small_dust = model.rho_embedded(fluid=1)
+            large_dust = model.rho_embedded(fluid=2)
+        else:
+            small_dust = model.rho_disk(fluid=1)
+            large_dust = model.rho_disk(fluid=2)
+        rhodust = np.stack((small_dust,large_dust),axis=-1)
+
+    print('writing dust_density.inp')
+    fname = model.outdir + 'dust_density.inp'
+    _scalarfieldWriter(model,data=rhodust.swapaxes(0,1), fname=fname)
+    
+def write_gas_density(model,envelope=True,rhogas=None):
+    """ writes the gas density in a gas_density.inp file g/cm^3
+    for radmc3d
+
+    Parameters
+    ----------
+
+    model: model class object to write densities from
+
+    envelope: boolean, if True then write the full density distribution of envelope + disk
+            if False, writes the densities of the disk only
+            
+    rhogas: if None, densities from model, otherwise, custom array will be written
+    """
+    
+    if rhogas is None:
+        if envelope == True:
+            rhogas = model.rho_embedded(fluid=0).swapaxes(0,1)
+        else:
+            rhogas = model.rho_disk(fluid=0).swapaxes(0,1)
+            
+    print('writing gas_density.inp')
+    fname = model.outdir + 'gas_density.inp'
+    _scalarfieldWriter(model,data=rhogas, fname=fname)
+    
+def write_star(model,wav=None,accrate=None,fnu=None):
+    """ writes the stars.inp file for radmc3d
+    summing up three components: blackbody emission, uv continuum from accretion onto central star,
+    and (optional) xray free-free emission from accretion onto central star
+    
+    Parameters
+    ----------
+    model: model class object, uses model.star parameters to write file
+    
+    wav: wavelength in microns, if None, reads from local wavelength_micron.inp file
+    
+    accrate: accretion rate in Msun/yr, if None, uses model accretion rate
+    
+    fnu: flux in ergs/cm^2/s/Hz, if None, adds up contributions from component models, otherwise custom flux can be entered
+    
+    """
+    Rstar = model.star['Rs']*Rsun
+    Mstar = model.star['Ms']*Msun
+    
+    if wav is None:
+        wav, freq = read_wavelength(fname=model.outdir+'wavelength_micron.inp')
+    else:
+        freq = c / wav * 1e4
+    
+    if accrate is None:
+        accrate = model.star['accrate']
+        
+    nwav = len(wav)
+    
+    if fnu is None:
+        fnu_tot = calc_input_spectrum(model,wav=wav)
+    else:
+        fnut_tot = fnu
+            
+    print('Writing stars.inp')
+    with open(model.outdir + 'stars.inp', 'w') as wfile:
+        wfile.write('%d\n' % 2)
+        wfile.write('%d %d\n' % (1, nwav))
+        wfile.write('%.9e %.9e %.9e %.9e %.9e\n' % (Rstar, Mstar,0,0,0))
+        wfile.write('%s\n' % ' ')
+        for ilam in range(nwav):
+            wfile.write('%.9e\n' % wav[ilam])
+        wfile.write('%s\n' % ' ')
+        
+        for ilam in range(nwav):
+            wfile.write('%.9e\n' % (fnu_tot[ilam]))
+    
+
+def write_external_radfield(model,wav=None,fnu=None):
+    """ writes the external_source.inp file for radmc3d
+    Parameters
+    ----------
+    model: model class object, uses model.star parameters to write file
+    
+    wav: wavelength in microns, if None, reads from local wavelength_micron.inp file
+    
+    fnu: flux in ergs/cm^2/s/Hz/str, if None, calculates ISRF from template, otherwise custom intensity can be entered
+    
+    """
+    if wav is None:
+        wav, freq = read_wavelength(model.outdir+'wavelength_micron.inp')
+    else:
+        freq = c / wav * 1e4
+        
+    if fnu is None:
+        wav, fnu_field = calc_ISRF(model,wav=wav)
+    else:
+        fnu_field = fnu
+        
+    print('writing external_source.inp')
+    with open(model.outdir+'external_source.inp','w') as f:
+        f.write('2 \n')
+        f.write(str(len(wav))+ '\n')
+        f.write('\n')
+        wav.tofile(f, sep='\n', format="%13.6e")
+        f.write('\n')
+        f.write('\n')
+        fnu_field.tofile(f, sep='\n', format="%13.6e")
+        
+
+def write_viscous_heatsource(model,accrate=None):
+    """ writes the heatsource.inp file for radmc3d
+    Parameters:
+    -----------
+    model: model class object, uses model.star parameters to write file
+    
+    accrate: accretion rate in Msun/yr, if None, uses model accretion rate
+    """
+    if accrate is None:
+        accrate = model.star['accrate']*Msun/yr
+    else:
+        accrate = accrate*Msun/yr
+        
+    D_disk = model_viscous_dissipation(model,accrate=accrate)
     Nr = np.prod(np.array(model.grid['N']))
     if write == True:
         with open(model.outdir+'heatsource.inp','w') as f:
@@ -149,70 +253,23 @@ def write_viscous_heatsource(model,write=True):
             f.write('%d\n'%(Nr))             # Number of cells
             heat = D_disk.swapaxes(0,1).ravel(order='F')# radmc assumes 'ij' indexing for some reason Create a 1-D view, fortran-style indexing
             heat.tofile(f, sep='\n', format="%13.6e")
-    os.chdir(model.parent_dir)
 
-###### inserts the x-ray accretion spectrum into the stars file, should do this before thermal MC
+def write_opacities(model,ndust=2,filenames=['',''],update=True,header=False):
+    """ checks for the dust_kappa..inp files, runs optool calculation if not present to write new ones
+    updates the dust_opac.inp file with the names of the dust_kappa.inp files
+    Parameters:
+    -----------
+    model: model_ class object
     
-def insert_xray_radiation(model,nx=5,nu=5,write=True): #writes the wavelength and spectrum info for the new fields
-    if os.getcwd() != model.outdir:
-        os.chdir(model.outdir)
-    grid = rpy.reggrid.radmc3dGrid()
-    grid.readWavelengthGrid()
-    rad_data = rpy.radsources.radmc3dRadSources(ppar=model.radmcpar,grid=grid)
-    rad_data.nstar = 1
-    rad_data.incl_accretion = True
-    rad_data.getStarSpectrum(grid=grid,ppar=model.radmcpar)
-    rad_data.getSpotSpectrum(grid=grid,ppar=model.radmcpar)
+    ndust: number of dust populations to include in dust_opac.inp
     
+    filenames: list of str, optional, names of the dust opacity files 
     
-    lam_ = np.squeeze(rad_data.grid.wav)
-    fnu_ = np.squeeze(rad_data.fnustar) + np.squeeze(rad_data.fnuspot)
-       
-    x_lam = np.logspace(np.log10(xray_min),np.log10(xray_max),nx)
-    u_lam = np.append(uv_min,np.linspace(lam_lya,uv_max,nu-1)) #includes Lya line
-    he_lam = np.append(x_lam,u_lam)
-    write_wavelength(model,fname='mcmono_wavelength_micron.inp',lam=he_lam)
+    update: boolean, if True, opacities are updated with the x-ray opacities from BB11
     
-    #add lya flux
-    fpeak = Lya_line(model,fLya=model.rad['fLya'])
-    fnu_[np.argmin(np.abs(lam_-lam_lya))] += fpeak
+    header: boolean, if True and update is True, assumes the files to update were written by optool, otherwise default radmc3d format
     
-    #find xray wavelengths
-    x_lam = lam_[lam_ <= xray_max]
-    nx = size(x_lam)
-    
-    #compute spectrum at those wavelengths
-    x_lam, x_fnu = Xray_accretion(model,fX=None,nx=nx)
-    fnu_[lam_<= xray_max] += x_fnu
-    
-    if write == True:
-        therm_star_file = model.outdir+'stars.inp'
-        if os.path.exists(therm_star_file):
-            os.rename(therm_star_file, model.outdir+'stars_thermal.inp')
-
-        with open(model.outdir+'stars_thermal.inp',"r") as f:
-            f.readline()
-            f.readline()
-            line = f.readline()
-        f.close()
-
-        with open(model.outdir+'stars.inp','w') as f:
-            f.write('2 \n')
-            f.write('1 \t')
-            f.write(str(len(lam_))+ '\n')
-            f.write(line)
-            f.write('\n')
-            lam_.tofile(f, sep='\n', format="%13.6e")
-            f.write('\n')
-            f.write('\n')
-            fnu_.tofile(f, sep='\n', format="%13.6e")
-    return x_lam, x_fnu
-
-###### writes the opacity information and updates the dust opacities to include the x-ray photoelectric cross-section
-###### run with update = False before thermal MC
-###### run with update = True before high energy mcmono
-
-def write_opacities(model,ndust=2,filenames=['',''],update=True): 
+    """
     iformat = 3
     exts = {}
     for fluid,fname in zip(range(1,ndust+1),filenames):
@@ -228,15 +285,20 @@ def write_opacities(model,ndust=2,filenames=['',''],update=True):
             print('Running optool to generate new opacities')
             run_optool(model,fluid=fluid,na=50)
             exts[str(fluid)] = 'dust-{}'.format(fluid)
+    
         if update == True:
+            print('Updating x-ray opacities')
             kappa_file = "{}dustkappa_dust-{}x.inp".format(model.outdir,fluid)
             if os.path.exists(kappa_file) != True:
-                lam, kabs, kscat, g  = amend_kappa(model,fluid=fluid,filename=fname)
-                arrays = np.stack((lam,kabs,kscat,g),axis=-1)
-                nlam = len(lam)
-                header = '{} \n{} \n'.format(iformat,nlam)
+                wav, kabs, kscat, g  = read_kappa(model,fluid=fluid,filename=fname,header=header)
+                wav, kabs_new = model_kappa_xray(model,wav=wav,fluid=fluid)
+                kabs[kabs_new !=0] = kabs_new[kabs_new!=0]
+                arrays = np.stack((wav,kabs,kscat,g),axis=-1)
+                nwav = len(wav)
+                header = '{} \n{} \n'.format(iformat,nwav)
                 np.savetxt(kappa_file,arrays,header=header,fmt='%12.6e',comments='',delimiter='\t')
             exts[str(fluid)] = 'dust-{}x'.format(fluid)
+    print('updating dustopac.inp')      
     with open(model.outdir+ 'dustopac.inp','w') as f:
         f.write('2               Format number of this file\n')
         f.write('{}               Nr of dust species\n'.format(ndust))
@@ -249,31 +311,59 @@ def write_opacities(model,ndust=2,filenames=['',''],update=True):
             
 ##################################################################################            
             
-def write_main(model,nphot= 100000,scat=2,mrw =1,maxtau=15,noheat=1,dust=1,lines=0):        
+def write_main(model,nphot= 100000,scat=2,mrw =1,maxtau=15,teq=1,dust=1,lines=0,coup=0):   
+    """ writes radmc3d.inp file with desired parameters
+    Parameters
+    ----------
+    model: model class object, model.outdir stores where to write the file
+    
+    all others:
+    see radm3d.inp input documentation
+    """
+    print('updating radmc3d.inp')
     with open(model.outdir+'radmc3d.inp','w') as f:
         f.write('nphot = {}\n'.format(nphot))
         f.write('scattering_mode_max = {}\n'.format(scat))
         f.write('iranfreqmode = 1\n')
         f.write('modified_random_walk = {}\n'.format(mrw))
         f.write('mc_scat_maxtauabs = {}\n'.format(maxtau))
-        f.write('tgas_eq_tdust = {}\n'.format(noheat))
+        f.write('tgas_eq_tdust = {}\n'.format(teq))
         f.write('incl_dust = {}\n'.format(dust))
         f.write('incl_lines = {}\n'.format(lines))
+        f.write('itempdecoup = {}\n'.format(coup))
+    return True
             
 ##### for line transfer ##########################################################
 def write_lines(model,names=['co']):
+    """ writes the lines.inp file for radmc3d in leiden format
+    Parameters
+    ---------
+    model: model class object, model.outdir stores where to write the file
+    
+    names: list of str, names of molecules to include in line transfer
+    """
     with open(model.outdir+'lines.inp','w+') as f:
         f.write('2\n')                   # Format number
         f.write('{}\n'.format(len(names)))             # Number of molecules
         for name in names:
             f.write('{} leiden 0 0 0\n'.format(name))
+    return True
 
 def write_velocities(model,envelope = True):
+    """ writes the gas_velocity.inp file for radmc3d
+    Parameters
+    ----------
+    model: model class object, model.outdir stores where to write the file
+    
+    envlope: boolean, if True, envelope is included in the calculation of the velocity field, 
+                      if False, disk only
+    """
     if envelope == True:
         velocities = model.v_embedded()
     else:
         velocities = model.v_disk()
-    Nr = np.prod(np.array(self.grid['N']))
+    Nr = np.prod(np.array(model.grid['N']))
+    print('writing gas_velocity.inp')
     with open(model.outdir+'gas_velocity.inp','w+') as f:
         f.write('1\n')                   # Format number
         f.write('%d\n'%(Nr))             # Number of cells
@@ -282,24 +372,35 @@ def write_velocities(model,envelope = True):
         vphi = velocities['phi'].swapaxes(0,1).ravel(order='F')
         for i,j,k in zip(vr,vth,vphi):
             f.write("%9e %9e %9e\n" % (i, j, k))
+    return
             
-def write_gas_temperature(model,Tgas):
-    if Tgas.ndim != 3:
-        np.repeat(np.expand_dims(Tgas,axis=-1),len(self.phi),axis=-1)
-    Nr = np.prod(np.array(self.grid['N']))
-    with open(model.outdir+'gas_temperature.inp','w+') as f:
-        f.write('1\n')                   # Format number
-        f.write('%d\n'%(Nr))             # Number of cells
-        data = Tgas.swapaxes(0,1).ravel(order='F') # radmc assumes 'ij' indexing for some reason
-        data.tofile(f, sep='\n', format="%13.6e")
-        
+def write_gas_temperature(model,Tgas=None):
+    """ writes the gas temperature to a file 
+    Parameters
+    ----------
+    model: model class object, model.outdir stores where to write the file
+    
+    Tgas: 3d ndarray of the gas temperature 
+    """
+    print('writing gas_temperature.inp')
+    fname = model.outdir+'gas_temperature.inp'
+    _scalarfieldWriter(model,Tgas,fname=fname)
+    return
 
-def get_molecule_info(names=['co'],outdir=''):
+def get_molecule_info(model,names=['co']):
+    """ downloads molecule files from leiden database, unless files already exist locally
+    Parameters:
+    ----------
+    model: model class object, model.outdir stores where to write the file
+    
+    names: list of str, molecules to download from leiden database, names are from data file names
+    
+    https://home.strw.leidenuniv.nl/~moldata/datafiles/
+    
+    """
     leiden_url = 'https://home.strw.leidenuniv.nl/~moldata/datafiles/'
     co_molecules = dict(zip(['co','13co','c17o','c18o'],['co','13co','c17o','c18o']))
     shock_tracers = dict(zip(['sio-hot','sio','so'],['sio-h2-highT','sio-h2','so@lique']))
-    if os.getcwd() != outdir:
-        os.chdir(outdir)
     for name in names:
         if name in co_molecules.keys():
             molecule = co_molecules[name]
@@ -309,17 +410,34 @@ def get_molecule_info(names=['co'],outdir=''):
             molecule = name
         molecule_url = leiden_url + molecule + '.dat'
         molecule_file = 'molecule_'+molecule + '.inp'
-        if os.path.exists(molecule_file) != True:
+        if os.path.exists(model.outdir+molecule_file) != True:
             if os.uname().sysname.lower().startswith('darwin'):
                 os.system("curl {} -o {}".format(molecule_url, molecule_file))
             else:
-                os.system("wget -0 {} {}".format(molecule_file, molecule_url))
+                os.system("wget {} {}".format(molecule_file, molecule_url))
         else:
-            print('molecule file: {} exists in {}'.format(molecule_file,outdir))
+            print('molecule file: {} exists in {}'.format(molecule_file,model.outdir))
+    return 
             
 def write_molecule_density(model,names=['co'],abundances=[1e-4]):
+    """ writes the number density of molecules into a numberdens_X.inp file for radmc3d line transfer
+    where X is the molecule name
+    
+    Parameters:
+    ----------
+    model: model class object, model.outdir stores where to write the file
+    
+    names: list of str, molecules from leiden database, file extension name
+    
+    abundances: list of scalar or list of ndarray
+                if scalar, then the factor to multiple the number density of H2 by 
+                if ndarray, then an array of the number density of the molecule species
+    
+    
+    """
     co_molecules = dict(zip(['co','13co','c17o','c18o'],['co','13co','c17o','c18o']))
     shock_tracers = dict(zip(['sio-hot','sio','so'],['sio-h2-highT','sio-h2','so@lique']))
+    
     for name, X in zip(names,abundances):
         if name in co_molecules.keys():
             molecule = co_molecules[name]
@@ -327,16 +445,12 @@ def write_molecule_density(model,names=['co'],abundances=[1e-4]):
             molecule = shock_tracers[name]
         else:
             molecule = name
-        if isinstance(X,str):
-            print('This is where putting in an abundance file should go')
-            # X = np.load(.... )
+        if X.ndim > 1:
+            molecule_field = X #custom molecule field instead
         else:
             molecule_field = (model.rho_embedded(fluid=0)/(mu*mh)) * X
-        Nr = np.prod(np.array(model.grid['N']))
-        with open(model.outdir+'numberdens_' + molecule + '.inp','w+') as f:
-            f.write('1\n')                   # Format number
-            f.write('%d\n'%(Nr))             # Number of cells
-            data = molecule_field.swapaxes(0,1).ravel(order='F') # radmc assumes 'ij' indexing for some reason
-           # Create a 1-D view, fortran-style indexing
-            data.tofile(f, sep='\n', format="%13.6e")
-            f.write('\n')
+            molecule_field = molecule_field.swapaxes(0,1)
+        fname = model.outdir+'numberdens_' + molecule + '.inp'
+        print('writing',fname)
+        _scalarfieldWriter(model,molecule_field, fname=fname)
+    return
