@@ -1,0 +1,7 @@
+./disk_chemistry environ/new_0.03Mslg_0.5m_d200.0_Tgas_ssx/0io.1G0.x30.inp environ/new_0.03Mslg_0.5m_d200.0_Tgas_ssx/1environ.inp.e1.$1 > code.out.r$1.out
+mv /data/beegfs/astro-storage/groups/henning/schwarz/wedgeford/chemistry/r$1_e1_*.out runs/newdustchem_0.03Mslg_0.5m_ssx/e1/
+mv /data/beegfs/astro-storage/groups/henning/schwarz/wedgeford/chemistry/code.out.r$1.out runs/newdustchem_0.03Mslg_0.5m_ssx/e1/
+mv /data/beegfs/astro-storage/groups/henning/schwarz/wedgeford/chemistry/*_$1*.rout runs/newdustchem_0.03Mslg_0.5m_ssx/e1/
+cp /data/beegfs/astro-storage/groups/henning/schwarz/wedgeford/chemistry/r$1_e1_*.inp runs/newdustchem_0.03Mslg_0.5m_ssx//
+./streetsweeper.py -o runs/newdustchem_0.03Mslg_0.5m_ssx/e1/ -e environ/new_0.03Mslg_0.5m_d200.0_Tgas_ssx/1environ.inp.e1.$1
+echo R=$1 completed.

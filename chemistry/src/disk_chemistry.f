@@ -543,10 +543,10 @@ c internal density in ngr calc from Krijt & Ciesla 16
 	  else
       DO i = 1, Nr*Nz, 1
         if (.not. incl_locdust) then
-          read (01,*) Rs(i),rho(i),ngr(i),Tg(i),Td(i),zAU(i),zcm(i),Nrz(i),
+          read (01,*) Rs(i),rho(i),ngr(i),Tg(i),Td(i),zAU(i),zcm(i),
      &        zetaCR(i)
         else
-          read (01,*) Rs(i),rho(i),ngr(i),Tg(i),Td(i),zAU(i),zcm(i),Nrz(i),
+          read (01,*) Rs(i),rho(i),ngr(i),Tg(i),Td(i),zAU(i),zcm(i),
      &        zetaCR(i),locdust(i)
               print *, 'Local dust fraction adjusted by: ',i,locdust(i)
         end if
