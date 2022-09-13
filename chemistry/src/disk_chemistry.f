@@ -102,6 +102,8 @@ C Rs(Nz)      == radius (AU),
 C
 C rho(Nz)     == density [g/cm^3],
 C
+C ngr(Nz)     == dust number density [1/cm^3],
+C
 C Tg(Nz)      == gas temperature [K],
 C
 C Td(Nz)      == dust temperature [K],
@@ -198,7 +200,7 @@ C Local variable(s):
 c	  real dtaudt(9000,3)
       integer nln,indv
       INTEGER jg ! iterates final zone species for lower error, temporary
-      LOGICAL sameness
+      LOGICAL sameness, old_format
 
 
 C Current version of the code:
@@ -216,27 +218,27 @@ C..............................................................................
 	  call getarg(1,iofile)
       open (unit=01,file=iofile,status='old',access='sequential')
         read (01,*)
-        read (01,'(A40)') specs
-        read (01,'(A40)') rates
-        read (01,'(A80)') uvfile
+        read (01,'(A50)') specs
+        print *, specs
+        read (01,'(A50)') rates
+        read (01,'(A90)') uvfile
             uvfile = uvfile( :index(uvfile,'#')-1)
 C            print *, uvfile
-        read (01,'(A80)') xrayfile
+        read (01,'(A90)') xrayfile
             xrayfile = xrayfile( :index(xrayfile,'#')-1)
 C            print *, xrayfile
-        read (01,'(A80)') isrffile
+        read (01,'(A90)') isrffile
             isrffile = isrffile( :index(isrffile,'#')-1)
 C            print *, isrffile
 C        read (01,'(A80)') xrayfilesb
 C            xrayfilesb = xrayfilesb( :index(xrayfilesb,'#')-1)
-        read (01,'(A80)') radionucfile
+        read (01,'(A90)') radionucfile
             radionucfile = radionucfile( :index(radionucfile,'#')-1)
             print *, radionucfile
-        read (01,'(A80)') abun2dfile
+        read (01,'(A90)') abun2dfile
             abun2dfile = abun2dfile( :index(abun2dfile,'#')-1)
 C            print *, abun2dfile
       close (01)
-      print *, "abun2dfile!!!!!!!! ",abun2dfile
 C Read species set from 'specs':
         CALL reads (specs)
         print *, "read specs"
@@ -418,10 +420,10 @@ C Flags
 				read(flagval, '(I3)') intflagval
 				if (intflagval .EQ. 0) then
 					incl_2dabun = .FALSE.
-					print *, "1D abundances!!!!!!!!!!!!!!!!!!!!!"
+					print *, "1D abundances!"
 				else
 					incl_2dabun = .TRUE.
-					print *, "2D abundances!!!!!!!!!!!!!!!!!!!!!"
+					print *, "2D abundances!"
 				endif
 				if (abun2dfile .eq. 'None') incl_2dabun = .FALSE.
 				if (abun2dfile .eq. 'NONE') incl_2dabun = .FALSE.
@@ -439,6 +441,13 @@ C Flags
                     incl_locdust = .FALSE.
                 else
                     incl_locdust = .TRUE.
+                endif
+      else if (trim(flagname).eq.'old_format') then
+                read(flagval, '(I3)') intflagval
+                if (intflagval .EQ. 0) then
+                    old_format = .FALSE.
+                else
+                    old_format = .TRUE.
                 endif
 
 C Testing values
@@ -516,33 +525,35 @@ C..............................................................................
 		stop
 	  endif
 C Read in each zone's parameters
+	  if (old_format) then
       DO i = 1, Nr*Nz, 1
         if (.not. incl_locdust) then
-           print *, 'not including local dust'
-           read (01,*) Rs(i), rho(i), Tg(i), Td(i), zAU(i), zcm(i),
-     &				Nrz(i), zetaCR(i)
+           print *, 'assume rho_d = rho_g/100'
+           read (01,*) Rs(i),rho(i),Tg(i),Td(i),zAU(i),zcm(i),Nrz(i),zetaCR(i)
+            ngr(i) = rho(i)*1e-2*0.75/(1.4*pi*1e-21)
         else
-           read (01,*) Rs(i), rho(i), Tg(i), Td(i), zAU(i), zcm(i),
-     &                          Nrz(i), zetaCR(i),locdust(i)
+           read (01,*) Rs(i),rho(i),Tg(i),Td(i),zAU(i),zcm(i),Nrz(i),zetaCR(i),locdust(i)
+              print *, 'Local dust fraction adjusted by: ',i,locdust(i)
+              ngr(i)=rho(i)*1e19*0.75/(1.4*pi*locdust(i)*sqrt(locdust(i)))
+        end if
+C If Tgas <= 0, assume it's not set and set Tg = Td.
+        if (Tg(i) .LE. 0) Tg(i) = Td(i)
+      END DO
+c internal density in ngr calc from Krijt & Ciesla 16
+	  else
+      DO i = 1, Nr*Nz, 1
+        if (.not. incl_locdust) then
+          read (01,*) Rs(i),rho(i),ngr(i),Tg(i),Td(i),zAU(i),zcm(i),
+     &        zetaCR(i)
+        else
+          read (01,*) Rs(i),rho(i),ngr(i),Tg(i),Td(i),zAU(i),zcm(i),
+     &        zetaCR(i),locdust(i)
               print *, 'Local dust fraction adjusted by: ',i,locdust(i)
         end if
 C If Tgas <= 0, assume it's not set and set Tg = Td.
-		if (Tg(i) .LE. 0) Tg(i) = Td(i)
-c                Tg(i) = Tg(i)+20.0
-c                Td(i) = Td(i)+20.0
-c KRS
-	  END DO
-
-c Determine a numerical dust value
-c	  tmpdust = dust
-c	  DO i=1,len_trim(dust)
-c		IF (dust(i:i) .EQ. 'e') THEN
-c			tmpdust(i:i) = ' '
-c		ELSE IF (dust(i:i) .EQ. 'p') THEN
-c			tmpdust(i:i) = '.'
-c		END IF
-c	  ENDDO
-c	  read(tmpdust, *) ndust
+        if (Tg(i) .LE. 0) Tg(i) = Td(i)
+      END DO
+	  end if
 
 c Create dust string:
       lastzer = -1
@@ -707,13 +718,6 @@ C If using 2D initial abundances read them in now
 			print *,file2d
 			print *,newfile2d
 			print *,abun2dfile
-c			sameness = LLT(newfile2d,'r212.5778_e1_2_3.0E+06.inp')
-c               write(*,*) "Is readin < built? ",sameness
-c               sameness = LGT(newfile2d,'r212.5778_e1_2_3.0E+06.inp')
-c               write(*,*) "Is readin > built?  ",sameness
-c               write(*,*) "lengths: ",LEN(newfile2d)
-c               write(*,*) "abundfile2d ",trim(adjustl(abun2dfile))
-c               write(*,*) "file2d ",file2d
                 open(unit=71,file=file2d,
      &				 status='unknown')
 	  			nfrc=0
@@ -728,21 +732,6 @@ c               write(*,*) "file2d ",file2d
 	  			enddo
 	  			close(71)
 
-C                          write(*,*) "read in abundance file"
-Cc                           open (unit=71,file=trim(out)//'_'//
-Cc     &                           ait(1:nait)//'_'//
-Cc     &                           trim(adjustl(abun2dfile)),
-Cc     &                          status='unknown')
-C                          open(unit=21,file=file2d,status='unknown')
-C                          fend = 0
-C                          nfrc = 0
-C                          do j=1,ns
-CC A???,F???
-C                             read(71,'(1a13,1pe11.3)',iostat=fend)
-C    &                             spec0(nfrc), frc(nfrc)
-C                             write(*,*) "!!!!!!!",spec0(nfrc),frc(nfrc)
-C                          enddo
-C                          close(71)
                 print *,'nfrc'
                 CALL ini_abunds2D(ns,s,nfrc,spec0,frc,gdens,yy)
             else
@@ -980,13 +969,14 @@ C grain abundance
 			n_ice_init = n_ice_init + fraction(i)*density
 		ENDIF
 C scale grain abundance by dust settling parameter (except for midplane zone)
-		IF ('GRAIN' .EQ. trim(yr(i))) THEN
-			IF (zone .NE. Nz) THEN
-				ngr_init = fraction(i)*density*ndust
-			ELSE
-				ngr_init = fraction(i)*density
-			ENDIF
-		ENDIF
+C Deprecated, KRS 5/20/22, now read in from 1environ
+C		IF ('GRAIN' .EQ. trim(yr(i))) THEN
+C			IF (zone .NE. Nz) THEN
+C				ngr_init = fraction(i)*density*ndust
+C			ELSE
+C				ngr_init = fraction(i)*density
+C			ENDIF
+C		ENDIF
 	end do
 
 C Calculation of the initial abundances:

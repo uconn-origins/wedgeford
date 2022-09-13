@@ -35,14 +35,14 @@ C..............................................................................
 	LOGICAL CRdesorp, CRionization, photodesorp, LyAphotodesorp
 	LOGICAL thermaldesorp, include_LyA
 	DOUBLE PRECISION RadNuc
-	
-	COMMON /FLAGS/ g0_100, g0_CO, Lxray, fg, freezeeffic, CRdesorp, 
-     &		CRionization, photodesorp, LyAphotodesorp, thermaldesorp, 
+
+	COMMON /FLAGS/ g0_100, g0_CO, Lxray, fg, freezeeffic, CRdesorp,
+     &		CRionization, photodesorp, LyAphotodesorp, thermaldesorp,
      &		include_LyA, RadNuc
 
 C DOUBLE PRECISION xrayrate
 C
-C COMMON /FLAGS/ g0_100, g0_CO, Lxray, fg, xrayrate, CRdesorp, 
+C COMMON /FLAGS/ g0_100, g0_CO, Lxray, fg, xrayrate, CRdesorp,
 C
 C..............................................................................
 C
@@ -57,32 +57,30 @@ C
 C..............................................................................
 	INTEGER nband_read, nlam, xnlam
 	DOUBLE PRECISION siglam_l, siglam_u, sigma, e_sil, xs_sil
-	DIMENSION siglam_l(NBANDS), siglam_u(NBANDS), sigma(NBANDS), 
+	DIMENSION siglam_l(NBANDS), siglam_u(NBANDS), sigma(NBANDS),
      &		e_sil(2000), xs_sil(2000)
 
-	COMMON /XSECT/ siglam_l, siglam_u, sigma, e_sil, xs_sil, 
+	COMMON /XSECT/ siglam_l, siglam_u, sigma, e_sil, xs_sil,
      &		nband_read, nlam, xnlam
-	
+
 C..............................................................................
 C
 C SELFSHIELD:
 C
-C ih2		== 
+C ih2		==
 C
-C ico		== 
+C ico		==
 C
 C..............................................................................
 	INTEGER ih2, ico
 	PARAMETER (ih2=6, ico=8)
 	CHARACTER*80 fnameSS
-	
+
 	COMMON /SSTEST/ fnameSS
 
 C..............................................................................
 C
 C Monolayers
-C
-C ngr_init ==  Initial abundance of grains
 C
 C n_ice_init == Total abundance of species on grains initially
 C
@@ -97,7 +95,6 @@ C
 C..............................................................................
 	DOUBLE PRECISION ngr_init, n_ice_init, n_ice, numlayers, PDadjust, 
      1  Madjust
-	
-	COMMON /MLAYER/ ngr_init, n_ice_init, n_ice, numlayers, PDadjust, 
-     1  Madjust
 
+	COMMON /MLAYER/ ngr_init, n_ice_init, n_ice, numlayers, PDadjust,
+     1  Madjust

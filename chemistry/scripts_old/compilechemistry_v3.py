@@ -222,21 +222,19 @@ def writemol(bsd,dust,mod,mol,steps):
 def main():
 
     # (1) Base directory for disk_chemistry/runs/:
-    bsd = '/home/kschwarz/MasterChemistry/runs/'
-    bsd = '/data/disk_chemistry/MasterChemistry/runs/'
+    bsd = '/data/beegfs/astro-storage/groups/henning/schwarz/wedgeford/chemistry/runs/'
     # Subfolder labeled by dust assumed.  ProtoDisk (or GenDisk)
     # already incorporate settling, but always labeled as 'e1'.
     dust = 'e1'
 
     # (2) Define a list (or single molecule ['CO']) to extract:
-    mols =['OH','OH(gr)','H(gr)','CO','CO(gr)','CH3OH(gr)','He+','H3+','CO2(gr)']
-    #mols = ['E']
+    mols =['CO','CO(gr)','CH3OH(gr)','CO2(gr)','H2O(gr)']
 
 #     file = os.listdir(bsd)
 #     f = [i for i,x in enumerate(file) if x ==' 6Myr_new_0.03Mslg_0.8m_d200.0_Tgas_ssx_1g0_x31_noH2O']
 #
     #file = file[f[0]+1:]
-    #mod = ['full_0.1Mslg_0.5m_d200.0_Tgas_ssx_1g0_x30/']
+    mod = ['newdustchem_0.03Mslg_0.5m_ssx/']
 
     # file1 = '/home/kschwarz/MasterChemistry/rspecies_herb0308_CDR_FullGr.dat'
     # infile = open(file1,"r")
@@ -267,13 +265,12 @@ def main():
 
 
    # steps = np.ones(len(mod),dtype=int)*180
-    for file in os.listdir(bsd):
-     	if file.count('drl300') == 1:
-     		writemol(bsd,dust,file+'/',mols,180)
+    #for file in os.listdir(bsd):
+    # 	if file.count('drl300') == 1:
+    # 		writemol(bsd,dust,file+'/',mols,180)
 
-    #for n in range(len(mod)):
-    #	print( mod[n])
-    #	writemol(bsd,dust,mod[n],mols,180)
+    for n in range(len(mod)):
+	       writemol(bsd,dust,mod[n],mols,180)
 
     return
 

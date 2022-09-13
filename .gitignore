@@ -9,8 +9,10 @@ out/**/*.dat
 **/*.out
 **/*.out
 *.out
+*.rout
 .DS_Store
 **/environ/**
+*/*1environ.inp*
+chemistry/xsect/*.calc
 out/gmaur/kz_gma/**
 out/gmaur/GM_Aur_MAPS/**
-

@@ -560,7 +560,7 @@ C Include the environmental variables
 	DOUBLE PRECISION sigmapd, yield, flux
 	DOUBLE PRECISION sigmafac, sigmagr
 	DOUBLE PRECISION Rdust, Nsites, sitedens, ngrspec
-	DOUBLE PRECISION ngr, Mlayers, Mlayersabun
+	DOUBLE PRECISION Mlayers, Mlayersabun
 	DOUBLE PRECISION fr,molarea,rgr
 
 c	sigmafac = 1.0e-15 / 4.0
@@ -592,9 +592,9 @@ C   Calculate the abundance of on-grain species
 c   Get the current abundance of grains
 	CALL ispecies('GRAIN        ', ns, s, grindex)
 	IF (timestep .EQ. 1) THEN
-		ngr = abundances(grindex, timestep)
+		ngr(zone) = abundances(grindex, timestep)
 	ELSE
-		ngr = abundances(grindex, timestep-1)
+		ngr(zone) = abundances(grindex, timestep-1)
 	END IF
 
 C   Get the current abundance of the species we're looking at
@@ -609,8 +609,8 @@ c   Set the abundance for the first zone (when abundances = 0)
 	IF (n_ice .LT. MINABUN) THEN
 		n_ice = n_ice_init
 	ENDIF
-	IF (ngr .LT. MINABUN) THEN
-		ngr = ngr_init
+	IF (ngr(zone) .LT. MINABUN) THEN
+		ngr(zone) = ngr_init
 	ENDIF
 	IF (ngrspec .LT. MINABUN) THEN
 		ngrspec = MINABUN
@@ -636,7 +636,7 @@ c        Nsites = Nsites * (freezeeffic**(3.5/1.5))
 
 c   Number of monolayers is nice / ngr / Nsites
 c   Abundance of monolayers is then nice / Mlayers = ngr * Nsites
-	Mlayers = n_ice / ngr / Nsites
+	Mlayers = n_ice / ngr(zone) / Nsites
 
 	molarea = 3.14 * (1e-8/2.0) ** 2  ! 1 angstrom sites
 	photodesorp_rate = yield * molarea !* freezeeffic !* 2.0  ! * ngrspec / n_ice ! temporary comment LIC
@@ -802,7 +802,7 @@ C Common Blocks
 	CHARACTER*13 specarr(n_mols)
 	INTEGER imol
 	INTEGER r1index, grindex,p
-	DOUBLE PRECISION nr1, ngr, Nummonol(n_mols)
+	DOUBLE PRECISION nr1, Nummonol(n_mols)
 	DOUBLE PRECISION polint,Nsites,c_ice_lyr,fr
 	real nummonotot,l_diff
 
@@ -828,13 +828,13 @@ c	  write(*,*) grindex
 
 		IF (timestep .eq. 2) THEN
 			nr1 = abundances(r1index, timestep)
-			ngr = abundances(grindex, timestep)
+			ngr(zone) = abundances(grindex, timestep)
 		ELSE
 			nr1 = abundances(r1index, timestep-1)
-			ngr = abundances(grindex, timestep-1)
+			ngr(zone) = abundances(grindex, timestep-1)
 		END IF
 
-		Nummonol(imol) = nr1/ngr/Nsites
+		Nummonol(imol) = nr1/ngr(zone)/Nsites
 		nummonotot = nummonotot + Nummonol(imol)
 c		dataarr(imol,3) = Numr1(imol)
 c		write(*,*) species,timestep,Nummonol(imol),ngr

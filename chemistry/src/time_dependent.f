@@ -6,28 +6,28 @@ C
 C..............................................................................
 	DOUBLE PRECISION FUNCTION grain_abun_check(ralpha,rbeta,rgamma,species)
 	implicit none
-	
-C Initialization of common blocks:	
+
+C Initialization of common blocks:
 	INCLUDE "Fcn.h"
 	INCLUDE "environ.h"
 	INCLUDE "constants.h"
 	INCLUDE "rates.h"
 
 	DOUBLE PRECISION ralpha, rbeta, rgamma
-	DOUBLE PRECISION nr1, ngr
+	DOUBLE PRECISION nr1
 	DOUBLE PRECISION calcrate
 	DOUBLE PRECISION vel
+	DOUBLE PRECISION sigadjust
 	DOUBLE PRECISION EHc,EHp,Es,nuHc,Flu,squiggle,effh2
 	CHARACTER*13 species
 	INTEGER r1index, grindex
-        DOUBLE PRECISION sigadjust
 
-        sigadjust = 1.0
-        if (incl_locdust) sigadjust = locdust(zone)
+	sigadjust = 1.0
+	if (incl_locdust) sigadjust = locdust(zone)
 
 c	calcrate = ralpha*(Tg(zone)/300.0D0)**rbeta
 	vel = ((8.0 * kbol * Tg(zone))/(pi * rbeta * mH))**0.5
-		
+
 C   Now adding efficiency term from Cazaux and Tielens 2002, 2004
 
 	EHc  = 1e4
@@ -35,45 +35,45 @@ C   Now adding efficiency term from Cazaux and Tielens 2002, 2004
 	Es   = 200.0
 	nuHc = 1.3e13
 	Flu = 1e-10
-	
-	squiggle = (1+nuHc/(2.0*Flu)*exp(-1.5*EHc/(Tg(zone)))
-     &		 *(1+sqrt((EHc - Es)/(EHp-Es)))**2)**(-1)	
-	 
-	 
-	effh2 = (1.0+0.25*(1+sqrt((EHc - Es)/(EHp-Es)))**2
-     &		* exp(-Es/(Tg(zone))))**(-1)*squiggle
-c	print *, 'H2 form',Tg(zone),effh2,squiggle
-	
-	
+
+C	squiggle = (1+nuHc/(2.0*Flu)*exp(-1.5*EHc/(Tg(zone)))
+C     &		 *(1+sqrt((EHc - Es)/(EHp-Es)))**2)**(-1)
+
+
+C	effh2 = (1.0+0.25*(1+sqrt((EHc - Es)/(EHp-Es)))**2
+C     &		* exp(-Es/(Tg(zone))))**(-1)*squiggle
+
+
+
 
 	effh2 = 1.0
-	
+
 	calcrate = ralpha * vel * rgamma * sigadjust * effh2
-	
+
 	CALL ispecies(species, ns, s, r1index)
 	CALL ispecies('GRAIN        ', ns, s, grindex)
 	IF (timestep .EQ. 1) THEN
 		nr1 = abundances(r1index, timestep)
-		ngr = abundances(grindex, timestep)
+		ngr(zone) = abundances(grindex, timestep)
 	ELSE
 		nr1 = abundances(r1index, timestep-1)
-		ngr = abundances(grindex, timestep-1)
+		ngr(zone) = abundances(grindex, timestep-1)
 	END IF
 
-	IF (ngr .LT. 1.0e-20) THEN
-		ngr = ngr_init
+	IF (ngr(zone) .LT. 1.0e-20) THEN
+		ngr(zone) = ngr_init
 	ENDIF
 
-	IF (nr1 .GT. ngr) THEN
-		calcrate = calcrate * ngr / nr1
+	IF (nr1 .GT. ngr(zone)) THEN
+		calcrate = calcrate * ngr(zone) / nr1
 	ENDIF
-	
-	if (nr1.lt.1e-30) calcrate = 0.0
-	if (calcrate .lt. 1e-30) calcrate = 0.0
-	
+
+	if (nr1.LT.1e-30) calcrate = 0.0
+	if (calcrate .LT. 1e-30) calcrate = 0.0
+
 	grain_abun_check = calcrate
 c	print *, 'H freeze: ', calcrate, 7.5e-5*(Tg(zone)/300.0)**0.5
-	
+
 	RETURN
 	END
 
@@ -86,8 +86,8 @@ C
 C..............................................................................
 	DOUBLE PRECISION FUNCTION binding_surface(Ebind,massSp,rgamma)
 	implicit none
-	
-C Initialization of common blocks:	
+
+C Initialization of common blocks:
 	INCLUDE "Fcn.h"
 	INCLUDE "environ.h"
 	INCLUDE "constants.h"
@@ -95,12 +95,12 @@ C Initialization of common blocks:
 
 	INTEGER i_co,i_co2,i_h2o
 	DOUBLE PRECISION nh2o,nco,nco2
-	DOUBLE PRECISION f_h2o,f_co,f_co2	
+	DOUBLE PRECISION f_h2o,f_co,f_co2
 	DOUBLE PRECISION nu0,Ebind,massSp,rgamma,icetot
 	DOUBLE PRECISION calcrate
 	DOUBLE PRECISION h2o_v_sil, co2_v_sil, co_v_sil
 	DOUBLE PRECISION Ebind_adj,nHtot, coicetot
-	
+
 	CALL ispecies('CO(gr)       ', ns, s, i_co)
 	CALL ispecies('H2O(gr)      ', ns, s, i_h2o)
 	CALL ispecies('CO2(gr)      ', ns, s, i_co2)
@@ -113,42 +113,42 @@ C Initialization of common blocks:
 		nco2 = abundances(i_co2, timestep-1)
 		nh2o = abundances(i_h2o, timestep-1)
 	END IF
-	
+
 	icetot = nco + nco2 + nh2o
 	coicetot = nco + nco2
-	nHtot = rho(zone) / aMp / amu 
-	
+	nHtot = rho(zone) / aMp / amu
+
 	f_co = nco/coicetot
 	f_h2o = nh2o/coicetot
 	f_co2 = nco2/coicetot
 
-C Evaluate fractional coverage of ice, as well as total amount of ice coveraged.  For example, 1 monolayer of ice is 1e6 sites.  
-C The abundance of a single monolayer of ice is: icetot/6e-12 = 1e6.  Or, icetot = 6e-6 is the minimum total 
-C abundance of ice to have a monolayer. If the abundance is below x(ice) < 1e-6 then ice is not fully coated and 
+C Evaluate fractional coverage of ice, as well as total amount of ice coveraged.  For example, 1 monolayer of ice is 1e6 sites.
+C The abundance of a single monolayer of ice is: icetot/6e-12 = 1e6.  Or, icetot = 6e-6 is the minimum total
+C abundance of ice to have a monolayer. If the abundance is below x(ice) < 1e-6 then ice is not fully coated and
 C bare silicate binding energies are assumed.
 
-	h2o_v_sil = 1323.0/857.0 * 855.0 
-	co2_v_sil = 1113.0/857.0 * 855.0 
-	co_v_sil  = 855.0 
+	h2o_v_sil = 1323.0/857.0 * 855.0
+	co2_v_sil = 1113.0/857.0 * 855.0
+	co_v_sil  = 855.0
 
 
 c	if (icetot/nHtot.ge.6e-6) then
 c		IF (Td(zone) .le. 17.1) THEN      ! Below 17 K the ice mantles will be dominated by CO
-c			Ebind_adj = Ebind*co_v_sil  
+c			Ebind_adj = Ebind*co_v_sil
 c		ELSE IF (nco/nHtot.ge.6e-6) THEN  ! If you have a monolayer of CO alone:
-c			Ebind_adj = Ebind*co_v_sil  
+c			Ebind_adj = Ebind*co_v_sil
 c		ELSE
-c			Ebind_adj = Ebind*(f_h2o*h2o_v_sil + f_co2*co2_v_sil + 
+c			Ebind_adj = Ebind*(f_h2o*h2o_v_sil + f_co2*co2_v_sil +
 c     &         f_co*co_v_sil)
 cc		ENDIF
 c	endif
 
-C   17.1 for CO	
+C   17.1 for CO
 C	22.16 for CO2
 C   26.46 for H2O
 C   96 K for H2O in gas (silicate surf)
 
-C  If dust > 26.46 
+C  If dust > 26.46
 
 C CO2 freezes onto H2O at XX Temp.  Between 17.1 - CO2 on H2O
 C For Td < 17.1, CO surface 855 K.
@@ -159,18 +159,18 @@ C For Td > Eb(H2O/SiO2) = 96 K, have a SiO2 surface surface or 1180.0 K.
 	Ebind_adj = 1180.0 ! For bare silicate.
 
 	if (icetot/nHtot.ge.6e-6) then
-		IF (Td(zone) .le. 25.0) THEN      ! Below 17 K the ice mantles will be dominated by CO
-			Ebind_adj = co_v_sil  
-		ELSE IF ((Td(zone) .gt. 25.0).and.(Td(zone) .le. 50.0)) THEN  ! If you have a monolayer of CO alone:
-c		ELSE IF (Td(zone) .gt. 30.0) THEN  ! If you have a monolayer of CO alone:
-			Ebind_adj = co2_v_sil  
-		ELSE IF ((Td(zone) .gt. 50.0).and.(Td(zone) .le. 100.0)) THEN  ! If you have a monolayer of CO alone:
-			Ebind_adj = h2o_v_sil  
+		IF (Td(zone) .LE. 25.0) THEN      ! Below 17 K the ice mantles will be dominated by CO
+			Ebind_adj = co_v_sil
+		ELSE IF ((Td(zone) .GT. 25.0).and.(Td(zone) .le. 50.0)) THEN  ! If you have a monolayer of CO alone:
+c		ELSE IF (Td(zone) .GT. 30.0) THEN  ! If you have a monolayer of CO alone:
+			Ebind_adj = co2_v_sil
+		ELSE IF ((Td(zone) .GT. 50.0).and.(Td(zone) .le. 100.0)) THEN  ! If you have a monolayer of CO alone:
+			Ebind_adj = h2o_v_sil
 		ELSE
 			Ebind_adj = 1180.0
 		ENDIF
 	endif
-c	if (icetot/nHtot.ge.6e-6) then             
+c	if (icetot/nHtot.GE.6e-6) then
 c		Ebind_adj = co_v_sil
 c	else
 c		Ebind_adj = 1180.0
@@ -178,21 +178,21 @@ c	endif
 
 c	if (icetot/nHtot.ge.6e-6) then
 c		IF (Td(zone) .le. 17.1) THEN      ! Below 17 K the ice mantles will be dominated by CO
-c			Ebind_adj = Ebind*co_v_sil  
+c			Ebind_adj = Ebind*co_v_sil
 c        ELSE IF ((Td(zone) .gt. 48.0).and.(Td(zone) .le. 96.0)) THEN
-c			Ebind_adj = Ebind*h2o_v_sil  
+c			Ebind_adj = Ebind*h2o_v_sil
 c		ELSE
 c			Ebind_adj = Ebind*(f_co2*co2_v_sil + f_co*co_v_sil)
 C		ELSE IF ((Td(zone) .gt. 48.0).and.(Td(zone) .le. 96.0)) THEN  ! If you have a monolayer of CO alone:
-C			Ebind_adj = Ebind*h2o_v_sil  
+C			Ebind_adj = Ebind*h2o_v_sil
 C		ELSE
 C			Ebind_adj = Ebind
 c		ENDIF
 c	endif
 
-c	print *, 
+c	print *,
 c	write(*,'(a16,F10.3,a15,F10.3,a15,E10.3,a15,E10.3,a15,f10.3,f10.3,
-c     &		 f10.3)') 
+c     &		 f10.3)')
 c     &		 'Ebind silicate: ',Ebind,' and adjusted: ',Ebind_adj,
 c     &		 ' Ice abundance:',icetot/nHtot,
 c     &       ' CO ice abund:',nco/nHtot,'fractions:',f_co,f_co2
@@ -215,29 +215,29 @@ C
 C..............................................................................
 	DOUBLE PRECISION FUNCTION h2form(ralpha,rbeta,rgamma,species)
 	implicit none
-	
-C Initialization of common blocks:	
+
+C Initialization of common blocks:
 	INCLUDE "Fcn.h"
 	INCLUDE "environ.h"
 	INCLUDE "constants.h"
 	INCLUDE "rates.h"
 
 	DOUBLE PRECISION ralpha, rbeta, rgamma
-	DOUBLE PRECISION nr1, ngr
+	DOUBLE PRECISION nr1
 	DOUBLE PRECISION calcrate
 	DOUBLE PRECISION vel
 	DOUBLE PRECISION EHc,EHp,Es,nuHc,Flu,squiggle,effh2
 	CHARACTER*13 species
 	INTEGER r1index, grindex
-        DOUBLE PRECISION sigadjust
+	DOUBLE PRECISION sigadjust
 
-        sigadjust = 1.0
-        if (incl_locdust) sigadjust = locdust(zone)
+	sigadjust = 1.0
+	if (incl_locdust) sigadjust = locdust(zone)
 
 c	calcrate = ralpha*(Tg(zone)/300.0D0)**rbeta
 	vel = ((8.0 * kbol * Tg(zone))/(pi * rbeta * mH))**0.5
-	
-	
+
+
 C   Now adding efficiency term from Cazaux and Tielens 2002, 2004
 
 	EHc  = 1e4
@@ -245,40 +245,40 @@ C   Now adding efficiency term from Cazaux and Tielens 2002, 2004
 	Es   = 200.0
 	nuHc = 1.3e13
 	Flu = 1e-10
-	
+
 	squiggle = (1+nuHc/(2.0*Flu)*exp(-1.5*EHc/(Tg(zone))) *
-     &		 (1+sqrt((EHc - Es)/(EHp-Es)))**2)**(-1)	
-	 
-	 
+     &		 (1+sqrt((EHc - Es)/(EHp-Es)))**2)**(-1)
+
+
 	effh2 = (1.0+0.25*(1+sqrt((EHc - Es)/(EHp-Es)))**2
      &		 * exp(-Es/(Tg(zone))))**(-1)*squiggle
 c	print *, 'H2 form',Tg(zone),effh2,squiggle
 c      print *, ralpha,rbeta,rgamma,species
-	
+
 	calcrate = ralpha * vel * rgamma * sigadjust * effh2
-	
+
 	CALL ispecies(species, ns, s, r1index)
 	CALL ispecies('GRAIN        ', ns, s, grindex)
 	IF (timestep .EQ. 1) THEN
 		nr1 = abundances(r1index, timestep)
-		ngr = abundances(grindex, timestep)
+		ngr(zone) = abundances(grindex, timestep)
 	ELSE
 		nr1 = abundances(r1index, timestep-1)
-		ngr = abundances(grindex, timestep-1)
+		ngr(zone) = abundances(grindex, timestep-1)
 	END IF
 
-	IF (ngr .LT. 1.0e-20) THEN
-		ngr = ngr_init
+	IF (ngr(zone) .LT. 1.0e-20) THEN
+		ngr(zone) = ngr_init
 	ENDIF
 
-	calcrate = calcrate * ngr / nr1
-	
+	calcrate = calcrate * ngr(zone) / nr1
+
 	if (nr1.lt.1e-20) calcrate = 0.0
-	
+
 c	print *,'calcrate h2form:',calcrate,species
 
 	h2form = calcrate
-	
+
 	RETURN
 	END
 
@@ -291,16 +291,16 @@ C Include the environmental variables
 	INCLUDE "rates.h"
 	INCLUDE "Fcn.h"
 	INCLUDE "constants.h"
-	
+
 	CHARACTER*13 specname, nogrspec
 	INTEGER i, grspecindex, grindex,Hindex,Dindex
 	DOUBLE PRECISION  Nsites, ngrspec
-	DOUBLE PRECISION ngr, Mlayers
+	DOUBLE PRECISION Mlayers
 	DOUBLE PRECISION fr,molarea
 
-C This part of the code currently assumes all grains are small but there are fewer of them.  
+C This part of the code currently assumes all grains are small but there are fewer of them.
 
-	Nsites = 1.0e6 
+	Nsites = 1.0e6
 
 	n_ice = 0.0
 	CALL ispecies('H(gr)        ', ns, s, Hindex)
@@ -310,10 +310,10 @@ C Calculate the abundance of on-grain species
 	i = 0
 	do while (grspecs(i) .NE. -1)
 		IF (timestep .EQ. 1) THEN
-            if ((grspecs(i) .ne. Hindex).and.(grspecs(i) .ne. Dindex)) 
+            if ((grspecs(i) .ne. Hindex).and.(grspecs(i) .ne. Dindex))
      &		 n_ice = n_ice + abundances(grspecs(i), timestep)
 		ELSE
-            if ((grspecs(i) .ne. Hindex).and.(grspecs(i) .ne. Dindex)) 
+            if ((grspecs(i) .ne. Hindex).and.(grspecs(i) .ne. Dindex))
      &		 n_ice = n_ice + abundances(grspecs(i), timestep-1)
 		ENDIF
 		i = i+1
@@ -322,9 +322,9 @@ C Calculate the abundance of on-grain species
 c Get the current abundance of grains
 	CALL ispecies('GRAIN        ', ns, s, grindex)
 	IF (timestep .EQ. 1) THEN
-		ngr = abundances(grindex, timestep)
+		ngr(zone) = abundances(grindex, timestep)
 	ELSE
-		ngr = abundances(grindex, timestep-1)
+		ngr(zone) = abundances(grindex, timestep-1)
 	END IF
 
 
@@ -332,13 +332,13 @@ c set the abundance for the first zone (when abundances = 0)
 	IF (n_ice .LT. MINABUN) THEN
 		n_ice = n_ice_init
 	ENDIF
-	IF (ngr .LT. MINABUN) THEN
-		ngr = ngr_init
+	IF (ngr(zone) .LT. MINABUN) THEN
+		ngr(zone) = ngr_init
 	ENDIF
 
 c Number of monolayers is nice / ngr / Nsites
 c Abundance of monolayers is then nice / Mlayers = ngr * Nsites
-	compmono = n_ice / ngr / Nsites
+	compmono = n_ice / ngr(zone) / Nsites
 
 	RETURN
 	END
@@ -347,20 +347,21 @@ c Abundance of monolayers is then nice / Mlayers = ngr * Nsites
 C..............................................................................
 	DOUBLE PRECISION FUNCTION occupyice(species)
 	IMPLICIT NONE
+C for reaction type -41 , currently not used
 
 C Include the environmental variables
 	INCLUDE "environ.h"
 	INCLUDE "rates.h"
 	INCLUDE "Fcn.h"
 	INCLUDE "constants.h"
-	
+
 	CHARACTER*13 specname, nogrspec, species
 	INTEGER i, grspecindex, grindex,r1index
 	DOUBLE PRECISION  ngrspec
-	DOUBLE PRECISION ngr, Mlayers
+	DOUBLE PRECISION Mlayers
 	DOUBLE PRECISION fr,nr1
 
-C This part of the code currently assumes all grains are small but there are fewer of them.  
+C This part of the code currently assumes all grains are small but there are fewer of them.
 
 	nr1 = 0.0
 
@@ -370,15 +371,15 @@ c Get the current abundance of grains
 	CALL ispecies(species, ns, s, r1index)
 
 	IF (timestep .EQ. 1) THEN
-		ngr = abundances(grindex, timestep)
+		ngr(zone) = abundances(grindex, timestep)
         nr1 = abundances(r1index, timestep)
 	ELSE
-		ngr = abundances(grindex, timestep-1)
+		ngr(zone) = abundances(grindex, timestep-1)
         nr1 = abundances(r1index, timestep-1)
 	END IF
-        
-	occupyice = nr1/ngr
-    
+
+	occupyice = nr1/ngr(zone)
+
 	if (nr1 .lt. 1e-30) occupyice = 0.0
 
 
@@ -390,13 +391,13 @@ c Get the current abundance of grains
 C..............................................................................
 C
 C This function calculates the H2 photodissociation rate and takes into account
-C the H2 self-shielding.  
+C the H2 self-shielding.
 C Uses rates and k_Av0 from Lee et al. 1996, A&A, 311, 690
 C..............................................................................
 	DOUBLE PRECISION FUNCTION self_shield_H2()
 	implicit none
 
-C Initialization of common blocks:	
+C Initialization of common blocks:
 	INCLUDE "Fcn.h"
 	INCLUDE "rates.h"
 	INCLUDE "environ.h"
@@ -409,7 +410,7 @@ C Initialization of common blocks:
 	DOUBLE PRECISION lee_nh2(n_lee), lee_theta(n_lee), theta
 	DOUBLE PRECISION lnh2(n_lee), interp
 	DOUBLE PRECISION itheta
-	
+
 	double PRECISION G0eval
 
 	DATA colden/0.0/, colden_h2/0.0/, colden_h2_tot/ntime * 0.0/
@@ -437,7 +438,7 @@ c take log10 of column density table to prepare for interpolation
 	enddo
 
 c Linear interpolation
-	theta = interp(dlog10(colden_h2_tot(timestep)), 
+	theta = interp(dlog10(colden_h2_tot(timestep)),
      &		 lnh2, lee_theta, n_lee)
 
 C Old method, calculating G0 on the fly now, LIC 9/18/2013
@@ -446,18 +447,18 @@ c Unshielded value
 
 c changed to I/I0 at 1000 Ang
 	maxlam = 1000.0
-    
+
 C	call find_etau(maxlam, etau, zone)
 c	self_shield_H2 = k_Av0 * theta * etau
 
-	call find_G0(maxlam, G0eval, zone, 1)	
-	self_shield_H2 = 2.54e-11 * G0eval * theta	
+	call find_G0(maxlam, G0eval, zone, 1)
+	self_shield_H2 = 2.54e-11 * G0eval * theta
 
 c write values to selfshield.test
 	IF (shieldtest) THEN
 		OPEN(unit=02, file=fnameSS, status='old',
      &		 ACCESS='APPEND')
-		write(2,110), Rs(zone), self_shield_H2, k_Av0, theta, etau, 
+		write(2,110), Rs(zone), self_shield_H2, k_Av0, theta, etau,
      &		 colden_h2_tot(timestep), timestep
 		CLOSE(02)
 	END IF
@@ -467,14 +468,14 @@ c write values to selfshield.test
 	END
 
 C..............................................................................
-C Returns 
+C Returns
 C..............................................................................
 	DOUBLE PRECISION FUNCTION interp(xval, x, y, npts)
 	DOUBLE PRECISION xval
 	INTEGER npts,i,ipt
 	DOUBLE PRECISION x(npts), y(npts)
-	
-	
+
+
 c Return first element if less than the first element in the array
 	if (xval .LE. x(1)) then
 		interp = y(1)
@@ -487,23 +488,23 @@ c If beyond the last point, return the last value (no extrapolation)
 		return
 	endif
 
-c find points to interpolate around	
+c find points to interpolate around
 	do i=1,npts
-		if (xval .LT. x(i)) then
+		if (xval .lt. x(i)) then
 			ipt = i-1
 			exit
 		endif
 	enddo
 
 c 1D Linear Interpolation
-	interp = y(ipt) + (xval-x(ipt)) * (y(ipt+1)-y(ipt)) 
+	interp = y(ipt) + (xval-x(ipt)) * (y(ipt+1)-y(ipt))
      &		 / (x(ipt+1)-x(ipt))
-	
+
 	return
 	end
 
 C..............................................................................
-C This function takes a column density as input and returns an H2 shielding 
+C This function takes a column density as input and returns an H2 shielding
 C factor based on Lee et al. 1996
 C..............................................................................
 	SUBROUTINE lee_factors(nh2, theta)
@@ -511,7 +512,7 @@ C..............................................................................
 	INTEGER n_lee
 	PARAMETER (n_lee = 105)
 	DOUBLE PRECISION nh2(n_lee), theta(n_lee)
-	
+
 	nh2(1)  = 0.000
 	nh2(2)  = 3.690e11
 	nh2(3)  = 3.715e12
@@ -584,7 +585,7 @@ C..............................................................................
 	nh2(69) = 6.909e20
 	nh2(70) = 7.433e20
 	nh2(71) = 7.965e20
-	
+
 	nh2(72) = 8.505e20
 	nh2(73) = 9.056e20
 	nh2(74) = 9.627e20
@@ -770,18 +771,18 @@ C Initialization of common blocks:
 	double precision colden_h2_tot_12(ntime), colden_h2_tot_13(ntime)
 	double precision colden_h2_tot_18(ntime), colden_h2_tot_1318(ntime)
 	DATA colden_co_tot/ntime * 0.0/, colden_13co_tot/ntime * 0.0/
-	DATA colden_c18o_tot/ntime * 0.0/, colden_13c18o_tot/ntime * 0.0/ 
+	DATA colden_c18o_tot/ntime * 0.0/, colden_13c18o_tot/ntime * 0.0/
 	DATA colden_h2_tot_12/ntime * 0.0/, colden_h2_tot_13/ntime * 0.0/
-	DATA colden_h2_tot_18/ntime * 0.0/, colden_h2_tot_1318/ntime * 0.0/  
+	DATA colden_h2_tot_18/ntime * 0.0/, colden_h2_tot_1318/ntime * 0.0/
 
 	double precision thetatot
 	double precision nCO, H2abun
 	double precision k_Av0, etau, maxlam
 	double precision lnh2, lnco, t, u
 	double precision y1,y2,y3,y4
-	
+
 	double precision lnc18o
-	
+
 	double PRECISION G0eval
 	double precision test1,test2
 
@@ -812,7 +813,7 @@ c change this
 	if (iso .eq. 13)  call visser_13coshield(theta, xnco, xnh2)
 	if (iso .eq. 18)  call visser_c18oshield(theta, xnco, xnh2)
 	if (iso .eq. 38)  call visser_13c18oshield(theta, xnco, xnh2)
-	
+
 c/***
 c               setup the table for the spline by calling the splie2 routine
 c               returns the array dtheta containing derivitives
@@ -830,14 +831,14 @@ c/ First handle theta for high nH2 values:
 	do i = 1, ico
 		theta_highh2(i) = theta(ih2,i)
 	end do
-	
+
 	call spline(xnco,theta_highh2,ico,1.0e30,1.0e30,dtheta_highh2)
-	
-c Then handle theta for high nCO values:	
+
+c Then handle theta for high nCO values:
 	do i = 1, ih2
 		theta_highco(i) = theta(i,ico)
 	end do
-	
+
 	call spline(xnh2,theta_highco,ih2,1.0e30,1.0e30,dtheta_highco)
 
 C Get the current CO abundance
@@ -873,11 +874,11 @@ C Get the current CO abundance
                         nCO = abundances(COindex, timestep-1)
                 END IF
         end if
-       
+
 C Change abundance for different isotopes
-c$$$	IF (iso .eq. 13) THEN 
+c$$$	IF (iso .eq. 13) THEN
 c$$$	   nCO=nCO/75.0
-c$$$	ELSE IF (iso .eq. 18) THEN 
+c$$$	ELSE IF (iso .eq. 18) THEN
 c$$$	   nCO=nCO/500.0
 c$$$	END IF
 
@@ -890,10 +891,10 @@ c	if (iso .eq. 12) k_Av0 = 2.590e-10 * g0_CO * (100.0 / Rs(zone))**2.0
 c	if (iso .eq. 13) k_Av0 = 2.597e-10 * g0_CO * (100.0 / Rs(zone))**2.0
 c	if (iso .eq. 18) k_Av0 = 2.396e-10 * g0_CO * (100.0 / Rs(zone))**2.0
 c	if (iso .eq. 38) k_Av0 = 2.510e-10 * g0_CO * (100.0 / Rs(zone))**2.0
-	
+
 C Updated to calculate G0_CO on the fly as well 9/18/13.  These *do not* need etau -- include extinction already!
 	maxlam = 1100.0 ! updated from 960
-	call find_G0(maxlam, G0eval, zone, 0)		
+	call find_G0(maxlam, G0eval, zone, 0)
 
 	if (iso .eq. 12) k_Av0 = 2.590e-10 * G0eval
 	if (iso .eq. 13) k_Av0 = 2.597e-10 * G0eval
@@ -905,67 +906,67 @@ c/***
 c   Here we have to save the column density of H2 and CO at each time step
 c   and add it to the column density in the previous zone.
 c   This requires the time steps to be the same in each zone!!!! which
-c   should be the case - but put in a check just in case.  the check is 
+c   should be the case - but put in a check just in case.  the check is
 c   located in the main program.
 c***/
 
 	if (zone.eq.1) zcm(zone-1) = 0.0
 	if (iso .eq. 12) then
-	
+
 c Column density in current zone:
 		colden_co = nCO * (zcm(zone) - zcm(zone-1))
-		if (nCO .LE. 0.0) colden_co = 1.0e4 
-		colden_co_tot(timestep) = colden_co_tot(timestep) + colden_co		
+		if (nCO .LE. 0.0) colden_co = 1.0e4
+		colden_co_tot(timestep) = colden_co_tot(timestep) + colden_co
 		lnco = dlog10(colden_co_tot(timestep))
 		H2abun = rho(zone) / mH / amu
 		colden_h2_12 = H2abun * (zcm(zone) - zcm(zone-1))
-		colden_h2_tot_12(timestep) = colden_h2_tot_12(timestep) 
+		colden_h2_tot_12(timestep) = colden_h2_tot_12(timestep)
      &		+ colden_h2_12
 		lnh2 = dlog10(colden_h2_tot_12(timestep))
 	end if
 
 	if (iso .eq. 13) then
 		colden_13co = nCO * (zcm(zone) - zcm(zone-1))
-		if (nCO .LE. 0.0) colden_13co = 1.0e4 
-		colden_13co_tot(timestep) = colden_13co_tot(timestep) 
+		if (nCO .LE. 0.0) colden_13co = 1.0e4
+		colden_13co_tot(timestep) = colden_13co_tot(timestep)
      &		+ colden_13co
 		lnco = dlog10(colden_13co_tot(timestep))
 		H2abun = rho(zone) / mH / amu
 		colden_h2_13 = H2abun * (zcm(zone) - zcm(zone-1))
-		colden_h2_tot_13(timestep) = colden_h2_tot_13(timestep) 
+		colden_h2_tot_13(timestep) = colden_h2_tot_13(timestep)
      &		+ colden_h2_13
 		lnh2 = dlog10(colden_h2_tot_13(timestep))
 	end if
 
 	if (iso .eq. 18) then
 		colden_c18o = nCO * (zcm(zone) - zcm(zone-1))
-		if (nCO .LE. 0.0) colden_c18o = 1.0e4 
-		colden_c18o_tot(timestep) = colden_c18o_tot(timestep) 
+		if (nCO .LE. 0.0) colden_c18o = 1.0e4
+		colden_c18o_tot(timestep) = colden_c18o_tot(timestep)
      &		+ colden_c18o
 		lnco = dlog10(colden_c18o_tot(timestep))
 		H2abun = rho(zone) / mH / amu
 		colden_h2_18 = H2abun * (zcm(zone) - zcm(zone-1))
-		colden_h2_tot_18(timestep) = colden_h2_tot_18(timestep) 
+		colden_h2_tot_18(timestep) = colden_h2_tot_18(timestep)
      &		+ colden_h2_18
 		lnh2 = dlog10(colden_h2_tot_18(timestep))
 	end if
 
 C  Temporary testing to find C18O self-shielding factor:
 	lnc18o = dlog10((10**lnco)/500.0)
-c	write(*,*) 'lnc18o: ',lnco,lnc18o,lnh2,k_Av0 
-	
+c	write(*,*) 'lnc18o: ',lnco,lnc18o,lnh2,k_Av0
+
 	if (iso .eq. 38) then
 		colden_13c18o = nCO * (zcm(zone) - zcm(zone-1))
-		if (nCO .LE. 0.0) colden_13c18o = 1.0e4 
-		colden_13c18o_tot(timestep) = colden_13c18o_tot(timestep) 
+		if (nCO .LE. 0.0) colden_13c18o = 1.0e4
+		colden_13c18o_tot(timestep) = colden_13c18o_tot(timestep)
      &		+ colden_13c18o
 		lnco = dlog10(colden_13c18o_tot(timestep))
 		H2abun = rho(zone) / mH
 		colden_h2_1318 = H2abun * (zcm(zone) - zcm(zone-1))
-		colden_h2_tot_1318(timestep) = colden_h2_tot_1318(timestep) 
+		colden_h2_tot_1318(timestep) = colden_h2_tot_1318(timestep)
      &		+ colden_h2_1318
 		lnh2 = dlog10(colden_h2_tot_1318(timestep))
-	end if	
+	end if
 
 C  "flag" specifies whether the data is within the Visser table range (flag=0).
 C  The following sequence of if-statements handles the special case of large
@@ -985,17 +986,17 @@ c  or small column.  When flag=0, the value is taken from the table.
 		call splint(xnh2,theta_highco,dtheta_highco,ih2,lnh2,thetatot)
 
 c spline between 22 and 23 is negative, so linearly interpolate in that range
-        if (thetatot .LT. 0) then
+        if (thetatot .lt. 0) then
             do i = 1,ih2
-                if (lnh2 .GT. xnh2(i)) i_h2 = i
+                if (lnh2 .gt. xnh2(i)) i_h2 = i
             end do
-            thetatot = theta(i_h2,8) + (lnh2 - floor(lnh2)) * 
+            thetatot = theta(i_h2,8) + (lnh2 - floor(lnh2)) *
      &		(theta(i_h2+1,8) - theta(i_h2,8)) / (ceiling(lnh2) - floor(lnh2))
         endif
 
-        self_shield_CO = thetatot * k_Av0 
+        self_shield_CO = thetatot * k_Av0
         flag = 1
-		
+
 	else if (lnh2 .ge. 23.0) then
 		call splint(xnco,theta_highh2,dtheta_highh2,
      +          ico, lnco, thetatot)
@@ -1004,10 +1005,10 @@ c spline between 22 and 23 is negative, so linearly interpolate in that range
 	end if
 
 	smallcol = 0
-	
+
 	if (flag .eq. 0) then
 
-		if (lnco .LT. 0.0) then
+		if (lnco .lt. 0.0) then
 			print *, 'FYI: lnco is less than zero - setting it to 0.0.'
 			lnco = 0.0
 			smallcol = 1
@@ -1016,7 +1017,7 @@ c spline between 22 and 23 is negative, so linearly interpolate in that range
 		do i = 1,ih2
 			if (lnh2 .GE. xnh2(i)) i_h2 = i
 		end do
-		
+
 		do i = 1,ico
 			if (lnco .GE. xnco(i)) i_co = i
 		end do
@@ -1029,14 +1030,14 @@ c spline between 22 and 23 is negative, so linearly interpolate in that range
 		y2 = theta(i_h2+1,i_co)
 		y3 = theta(i_h2+1,i_co+1)
 		y4 = theta(i_h2,i_co+1)
-		
+
 		thetatot = (1-t)*(1-u)*y1
 		thetatot = thetatot + t*(1-u)*y2
 		thetatot = thetatot + t*u*y3
 		thetatot = thetatot + (1-t)*u*y4
-		
-c		thetatot = 1.0 
-c theta = 1 equivalent to turning off self shielding 
+
+c		thetatot = 1.0
+c theta = 1 equivalent to turning off self shielding
 		self_shield_CO = k_Av0 * thetatot
 C		print *, 'k_Av0 thetatot: ',k_Av0,thetatot
 	end if
@@ -1045,33 +1046,33 @@ C		print *, 'k_Av0 thetatot: ',k_Av0,thetatot
 c   ETAU (Outdated, do not use).
 c	maxlam = 960.0
 c	call find_etau(maxlam, etau, zone)
-	
-C	print *, 'columns lnco, lnh2:',lnco,lnh2,thetatot,self_shield_CO,self_shield_CO * etau	
+
+C	print *, 'columns lnco, lnh2:',lnco,lnh2,thetatot,self_shield_CO,self_shield_CO * etau
 c	self_shield_CO = self_shield_CO * etau
 
 
 	IF (shieldtest) THEN
-		if (iso .eq. 12) then
-			write(2, 112) iso,zcm(zone),self_shield_CO, 
+		if (iso .EQ. 12) then
+			write(2, 112) iso,zcm(zone),self_shield_CO,
      &			colden_co_tot(timestep), colden_h2_tot_12(timestep),
      &			thetatot, etau, nCO, timestep
 		end if
-		if (iso .eq. 13) then
-			write(2, 112) iso,zcm(zone), self_shield_CO, 
+		if (iso .EQ. 13) then
+			write(2, 112) iso,zcm(zone), self_shield_CO,
      &			colden_13co_tot(timestep), colden_h2_tot_13(timestep),
      &			thetatot, etau, nCO, timestep
 		end if
-		if (iso .eq. 18) then
-			write(2, 112) iso,zcm(zone), self_shield_CO, 
+		if (iso .EQ. 18) then
+			write(2, 112) iso,zcm(zone), self_shield_CO,
      &			colden_c18o_tot(timestep), colden_h2_tot_18(timestep),
      &			thetatot, etau, nCO, timestep
 		end if
-		if (iso .eq. 38) then
-			write(2, 112) iso,zcm(zone), self_shield_CO, 
+		if (iso .EQ. 38) then
+			write(2, 112) iso,zcm(zone), self_shield_CO,
      &			colden_13c18o_tot(timestep), colden_h2_tot_1318(timestep),
      &			thetatot, etau, nCO, timestep
 		end if
-		
+
 		CLOSE(02)
 	END IF
 
@@ -1079,12 +1080,12 @@ c	self_shield_CO = self_shield_CO * etau
 
 	if (self_shield_CO .LT. 0) then
 		print *, 'You broke the code!! selfshield_CO: ',self_shield_CO
-		if (smallcol .eq. 1) then 
+		if (smallcol .eq. 1) then
 		     self_shield_CO = 0.0 !! LIC?
 		else
-			if (abs(self_shield_CO) .lt. 1e-5) then 
+			if (abs(self_shield_CO) .lt. 1e-5) then
 				self_shield_CO = 0.0
-			else	 
+			else
 			   print *,'Exiting now.'
 			   stop
 			endif
@@ -1098,7 +1099,7 @@ c	self_shield_CO = self_shield_CO * etau
 C.......................................................................
 C FIND_ETAU - Interpolate the value of the UV field at current z
 C
-C 
+C
 C.......................................................................
 	subroutine find_etau(x, etau, jzone)
 
@@ -1110,7 +1111,7 @@ C.......................................................................
 	double precision dlam, dphotuv, photuv
 	double precision dphotuv_max, photuv_max
 	integer i, lambdai
-	
+
 	do i = 1, nwavl
 		if(lambda(i) .gt. x) then
 			ilam = i
@@ -1119,18 +1120,18 @@ C.......................................................................
 	end do
 
 	dlam = lambda(i) - lambda(i-1)
-	dphotuv = ((x-lambda(i-1))/dlam) * 
+	dphotuv = ((x-lambda(i-1))/dlam) *
      &		  (uvfield(jzone,i)-uvfield(jzone,i-1))
 	photuv = uvfield(jzone,i-1) + dphotuv
 
 C zone 1 = top of disk = I_0
-C	dphotuv0 = ((x-lambda(i-1))/dlam) * 
+C	dphotuv0 = ((x-lambda(i-1))/dlam) *
 C     &		   (uvfield(1,i)-uvfield(1,i-1))
 C	photuv0 = uvfield(1,i-1) + dphotuv0
 
 C UVmaxzone(i) = zone with maximum flux at wavelength x
 c	print *, lambda(i-1), UVmaxzone(i-1)
-	dphotuv_max = ((x-lambda(i-1))/dlam) * 
+	dphotuv_max = ((x-lambda(i-1))/dlam) *
      &		   (uvfield(UVmaxzone(i-1),i)-uvfield(UVmaxzone(i-1),i-1))
 	photuv_max = uvfield(UVmaxzone(i-1),i-1) + dphotuv_max
 
@@ -1160,7 +1161,7 @@ C.......................................................................
         double precision dlam, dphotuv, photuv
         double precision dphotuv_max, photuv_max
         integer i, lambdai
-		
+
         totuv = 0.0
         do i = 1, nwavl
 			if(lambda(i) .le. x) then
@@ -1174,12 +1175,12 @@ C.......................................................................
 				   end if
 			   else
 				   totuv = uvfield(jzone,i) * 10.0 * En_i + totuv
-			   end if	
+			   end if
 			else
 c			if(lambda(i) .gt. x) then
 c				ilam = i
 c				totuv=totuv-(uvfield(jzone,i)*(lambda(i)-x))*En_i ! Subtract the extra over limit x.
-c						En_i = 6.6260755e-27*2.99792458e10/(lambda(i)*1e-8)						
+c						En_i = 6.6260755e-27*2.99792458e10/(lambda(i)*1e-8)
 c						totuv = uvfield(jzone,i) * 10.0 * En_i + totuv  ! erg/cm^2/s units.
 				exit
 			end if
@@ -1187,7 +1188,7 @@ c						totuv = uvfield(jzone,i) * 10.0 * En_i + totuv  ! erg/cm^2/s units.
 
         G0_Habing = 1.6e-3 ! erg/cm^2/s from Herczeg et al. 2004
 		G0eval = totuv/G0_Habing
-		
+
         return
         end
 
@@ -1356,7 +1357,7 @@ c	print *, 'In 13coshield'
 
 	return
 	end
-	
+
 C..............................................................................
 C VISSER_C18OSHIELD - returns xnco, xnh2 and theta values for C18O
 C
@@ -1439,7 +1440,7 @@ c	print *, 'In c18oshield'
 
 	return
 	end
-	
+
 C..............................................................................
 C VISSER_13C18OSHIELD - returns xnco, xnh2 and theta values for 13CO
 C added 06/25/14 - KS
@@ -1521,11 +1522,11 @@ c	print *, 'In 13c18oshield'
 	theta(6,8) = 4.490e-8
 
 	return
-	end	
+	end
 
 
 C..............................................................................
-C SPLIN2 - Given X1A, X2A, YA, M, N as described in SPLIE2 and Y2A as produced 
+C SPLIN2 - Given X1A, X2A, YA, M, N as described in SPLIE2 and Y2A as produced
 C by that routine, and given a desired interpolating point X1, X2, this routine
 C returns an interpolated function value Y by bicubic spline interpolation.
 C
@@ -1535,7 +1536,7 @@ C Description from IDL function
 C Code from Numerical Recipes
 C..............................................................................
       SUBROUTINE SPLIN2(X1A,X2A,YA,Y2A,M,N,X1,X2,Y)
-      implicit double precision (a-h, o-z) 
+      implicit double precision (a-h, o-z)
       PARAMETER (NN=100)
       DIMENSION X1A(M),X2A(N),YA(M,N),Y2A(M,N),YTMP(NN),Y2TMP(NN),YYTMP(
      *NN)
@@ -1552,9 +1553,9 @@ C..............................................................................
       END
 
 C..............................................................................
-C SPLIE2 - Given an M by N tabulated function YA, and tabulated independent 
-C variables X1A (M values) and X2A (N values), this routine constructs 
-C one-dimensional natural cubic splines of the rows of YA and returns the 
+C SPLIE2 - Given an M by N tabulated function YA, and tabulated independent
+C variables X1A (M values) and X2A (N values), this routine constructs
+C one-dimensional natural cubic splines of the rows of YA and returns the
 C second derivatives in the array Y2A.
 C
 C "construct two-dimensional spline"
@@ -1584,7 +1585,7 @@ C
 C Code from Numerical Recipes
 C..............................................................................
       SUBROUTINE SPLINE(X,Y,N,YP1,YPN,Y2)
-      implicit double precision (a-h, o-z) 
+      implicit double precision (a-h, o-z)
       PARAMETER (NMAX=100)
       DIMENSION X(N),Y(N),Y2(N),U(NMAX)
       IF (YP1.GT..99E30) THEN
@@ -1621,7 +1622,7 @@ C
 C Code from Numerical Recipes
 C..............................................................................
       SUBROUTINE SPLINT(XA,YA,Y2A,N,X,Y)
-      implicit double precision (a-h, o-z) 
+      implicit double precision (a-h, o-z)
       DIMENSION XA(N),YA(N),Y2A(N)
       KLO=1
       KHI=N
@@ -1645,33 +1646,33 @@ C..............................................................................
      *      ((A**3-A)*Y2A(KLO)+(B**3-B)*Y2A(KHI))*(H**2)/6.
       RETURN
       END
-	  
+
 C..............................................................................
 C
 C This function calculates the needed values for monolayer adjustments
 C TIME DEPENDENT due to the ngr term and n_ice.
-C used for types -23, -24 (photodesorption), 21 (classical evaporation) 
+C used for types -23, -24 (photodesorption), 21 (classical evaporation)
 C and 22 (CR desorption)
 C
-C NOT USED AS OF 6/22/09 due to different calculation done in 
+C NOT USED AS OF 6/22/09 due to different calculation done in
 C photodesorp_rate
-C 
+C
 C..............................................................................
 	SUBROUTINE monolayer_calc()
 	implicit none
-	
-C Initialization of common blocks:	
+
+C Initialization of common blocks:
 	INCLUDE "Fcn.h"
 	INCLUDE "rates.h"
 	INCLUDE "constants.h"
         INCLUDE "environ.h"
 
-	DOUBLE PRECISION a_gr, Mlayer, ngr
+	DOUBLE PRECISION a_gr, Mlayer
 	INTEGER i, grindex
-        DOUBLE PRECISION sigadjust, rgr
+	DOUBLE PRECISION sigadjust, rgr
 
-        sigadjust = 1.0
-        if (incl_locdust) sigadjust = locdust(zone)
+	sigadjust = 1.0
+	if (incl_locdust) sigadjust = locdust(zone)
 
 
 c sum the abundance of on-grain species
@@ -1684,39 +1685,39 @@ c sum the abundance of on-grain species
 		ENDIF
 		i = i+1
 	end do
-	
+
 	CALL ispecies('GRAIN        ', ns, s, grindex)
 	IF (timestep .EQ. 1) THEN
-		ngr = abundances(grindex, timestep)
+		ngr(zone) = abundances(grindex, timestep)
 	ELSE
-		ngr = abundances(grindex, timestep-1)
+		ngr(zone) = abundances(grindex, timestep-1)
 	END IF
 
 C catch for first run, before any grain species have been calculated
-C (before first solver call).  	
+C (before first solver call).
 	IF (n_ice .LT. 1.0e-20) THEN
 		n_ice = n_ice_init
 	ENDIF
-	IF (ngr .LT. 1.0e-20) THEN
-		ngr = ngr_init
+	IF (ngr(zone) .LT. 1.0e-20) THEN
+		ngr(zone) = ngr_init
 	ENDIF
 
 	!a_gr = rgr*freezeeffic**(-1.0/1.5)  ! The freezeeffic term accounts for grain growth (small freeze effic, bigger grains, but less surf area).
 	Mlayer = 4 * pi * (rgr*1e-4)**2 * sigadjust / ((3e-8)**2)
-	numlayers = n_ice / ngr / Mlayer
+	numlayers = n_ice / ngr(zone) / Mlayer
 	print *, '# of monolayers = ', numlayers
 
 C perc_ice = n(i) / n_ice
 C fac = ngr * perc_ice / n(i), perc_ice = n(i) / n_ice
 C fac = PDadjust
 	IF (numlayers .GT. 1.0) THEN
-		PDadjust = ngr / n_ice
+		PDadjust = ngr(zone) / n_ice
 c		if (perc_ice(rspec(i,1)) .lt. 1e-3) fac = 1.0e-3
 	ELSE
-		PDadjust = ngr * numlayers / n_ice
-c		if (perc_ice(rspec(i,1)) .lt. 5.0e-5) fac = 5.0e-5 
+		PDadjust = ngr(zone) * numlayers / n_ice
+c		if (perc_ice(rspec(i,1)) .lt. 5.0e-5) fac = 5.0e-5
 	ENDIF
-	
+
 	IF (numlayers .LT. 1.0) THEN
 		Madjust = 1.0
 	ELSE
@@ -1725,19 +1726,19 @@ c		if (perc_ice(rspec(i,1)) .lt. 5.0e-5) fac = 5.0e-5
 
 c	print *, 'Madjust = ', Madjust
 c	print *, 'PDadjust = ', PDadjust
-	
+
 	RETURN
 	END
 C..............................................................................
 C
 C This function calculates the HD photodissociation rate and takes into account
-C the H2 self-shielding.  
+C the H2 self-shielding.
 C Uses rates and k_Av0 from Lee et al. 1996, A&A, 311, 690
 C..............................................................................
 	DOUBLE PRECISION FUNCTION self_shield_HD()
 	implicit none
 
-C Initialization of common blocks:	
+C Initialization of common blocks:
 	INCLUDE "Fcn.h"
 	INCLUDE "rates.h"
 	INCLUDE "environ.h"
@@ -1747,7 +1748,7 @@ C Initialization of common blocks:
 	DOUBLE PRECISION colden_h_hd, colden_h_tot_hd(ntime)
 	DOUBLE PRECISION colden_hd, colden_hd_tot(ntime)
 	DOUBLE PRECISION H2abun, maxlam, etau
-	DOUBLE PRECISION nHD, HDabun, nHI	
+	DOUBLE PRECISION nHD, HDabun, nHI
 	INTEGER n_lee_hd, i
 	PARAMETER (n_lee_hd = 105)
 	DOUBLE PRECISION lee_nh2_hd(n_lee_hd),lee_theta_hd(n_lee_hd),theta
@@ -1756,7 +1757,7 @@ C Initialization of common blocks:
 	INTEGER HDindex, HIindex
 	DOUBLE PRECISION G0eval
 	DOUBLE PRECISION zet_2,x_2,del_2,alph_2,f_2,zet_1,x_1,del_1,alph_1,f_1
-	
+
 	DATA colden_hd/0.0/,colden_h2_hd/0.0/,colden_h2_tot_hd/ntime * 0.0/
 	DATA colden_hd/0.0/, colden_hd_tot/ntime * 0.0/
 	DATA lee_nh2_hd/n_lee_hd * 0.0/, lee_theta_hd/n_lee_hd * 0.0/
@@ -1789,19 +1790,19 @@ C Get the current CO abundance
 	ELSE
 		nHI = abundances(HIindex, timestep-1)
 	END IF
-	
+
 	colden_hd = nHD * (zcm(zone) - zcm(zone-1))
 	colden_hd_tot(timestep) = colden_hd_tot(timestep) + colden_hd
 
 	colden_h2_hd = rho(zone) / mH / amu * (zcm(zone) - zcm(zone-1))
-	colden_h2_tot_hd(timestep) = colden_h2_tot_hd(timestep) 
+	colden_h2_tot_hd(timestep) = colden_h2_tot_hd(timestep)
      &		+ colden_h2_hd
-	 
+
 c	colden_h2_hd = Nrz(zone)  ! Trying radial column density
-	 
+
 	colden_h_hd = nHI *  (zcm(zone) - zcm(zone-1))
 	colden_h_tot_hd(timestep) = colden_h_tot_hd(timestep) + colden_h_hd
-	
+
 
 
 
@@ -1816,31 +1817,31 @@ c take log10 of column density table to prepare for interpolation
 
 c changed to I/I0 at 1000 Ang
 	maxlam = 1000.0
-	call find_G0(maxlam, G0eval, zone, 1)	
+	call find_G0(maxlam, G0eval, zone, 1)
 
 c Linear interpolation
-	theta = interp(dlog10(colden_hd_tot(timestep)), 
+	theta = interp(dlog10(colden_hd_tot(timestep)),
      &		 lnh2, lee_theta_hd, n_lee_hd)
-	 
-C Shielding of HD by H2 (Wolcott-Green and Haimann 2011)	 
 
-	zet_2 = 2.34e+19  
+C Shielding of HD by H2 (Wolcott-Green and Haimann 2011)
+
+	zet_2 = 2.34e+19
 	x_2 = colden_h2_tot_hd(timestep)/zet_2
 	del_2 =  0.238
 	alph_2 = 5.2e-3
-	
+
 	f_2 = 1.0/(1.0+x_2)**del_2 * exp(-alph_2*x_2)
-	
+
 	zet_1 = 2.85e23
 	x_1 = colden_h_tot_hd(timestep)/zet_1
 	del_1 = 1.62
 	alph_1 = 0.149
-	
+
 	f_1 = 1.0/(1.0+x_1)**del_1 * exp(-alph_1*x_1)
-	
+
 	if (colden_h2_tot_hd(timestep).ge.1e22) f_2 = 0.0
 	if (colden_h2_tot_hd(timestep).ge.1e24) f_1 = 0.0
-	
+
 c	write(*,'(A5,E10.3,A5,E10.3,1x,E10.3,1x,E10.3,1x,A5,E10.3)') 'f_2',f_2,'f_1',
 c     &		 f_1,colden_hd_tot(timestep),colden_h2_tot_hd(timestep),'th:',theta
 
@@ -1852,31 +1853,31 @@ c		close(15)
 c	END IF
 
 c	OPEN(unit=15, file='shieldinginfoHD.dat', status='old', ACCESS ='APPEND')
-c	WRITE(15,'(E10.3,E10.3,1x,E10.3,1x,E10.3,1x,E10.3)') 
+c	WRITE(15,'(E10.3,E10.3,1x,E10.3,1x,E10.3,1x,E10.3)')
 c     &		 colden_hd_tot(timestep),colden_h2_tot_hd(timestep),f_1,
 c     &		 f_2,theta
 c	close(15)
 
 c	write(*,*) 'ColdenH2',colden_h2_tot_hd(timestep)
 c	write(*,*) 'ColdenHD',colden_hd_tot(timestep)
-	
+
 	self_shield_HD = 2.54e-11 * G0eval * theta * f_2 * f_1
 c	write(*,*) 'HD factor:',theta * f_2 * f_1
 
 	RETURN
 	END
-	
-	
+
+
 C..............................................................................
 C
 C This function calculates the D2 photodissociation rate and takes into account
-C the H2 self-shielding.  
+C the H2 self-shielding.
 C Uses rates and k_Av0 from Lee et al. 1996, A&A, 311, 690
 C..............................................................................
 	DOUBLE PRECISION FUNCTION self_shield_D2()
 	implicit none
 
-C Initialization of common blocks:	
+C Initialization of common blocks:
 	INCLUDE "Fcn.h"
 	INCLUDE "rates.h"
 	INCLUDE "environ.h"
@@ -1886,7 +1887,7 @@ C Initialization of common blocks:
 	DOUBLE PRECISION colden_h_d2, colden_h_tot_d2(ntime)
 	DOUBLE PRECISION colden_d2, colden_d2_tot(ntime)
 	DOUBLE PRECISION maxlam, etau
-	DOUBLE PRECISION nD2, D2abun, nHI	
+	DOUBLE PRECISION nD2, D2abun, nHI
 	INTEGER n_lee_d2, i
 	PARAMETER (n_lee_d2 = 105)
 	DOUBLE PRECISION lee_nh2_d2(n_lee_d2),lee_theta_d2(n_lee_d2),theta
@@ -1895,9 +1896,9 @@ C Initialization of common blocks:
 	INTEGER D2index, HIindex
 	DOUBLE PRECISION G0eval
 	DOUBLE PRECISION zet_2,x_2,del_2,alph_2,f_2,zet_1,x_1,del_1,alph_1,f_1
-	
+
 	DATA colden_d2/0.0/,colden_h2_d2/0.0/,colden_h2_tot_d2/ntime * 0.0/
-	
+
 	DATA colden_d2_tot/ntime * 0.0/
 	DATA lee_nh2_d2/n_lee_d2 * 0.0/, lee_theta_d2/n_lee_d2 * 0.0/
 	DATA colden_h_d2/0.0/,colden_h_tot_d2/ntime * 0.0/
@@ -1921,17 +1922,17 @@ C Get the current CO abundance
 	ELSE
 		nD2 = abundances(D2index, timestep-1)
 	END IF
-	
+
 	colden_d2 = nD2 * (zcm(zone) - zcm(zone-1))
 	colden_d2_tot(timestep) = colden_d2_tot(timestep) + colden_d2
 
 	colden_h2_d2 = rho(zone) / mH / amu * (zcm(zone) - zcm(zone-1))
-	colden_h2_tot_d2(timestep) = colden_h2_tot_d2(timestep) 
+	colden_h2_tot_d2(timestep) = colden_h2_tot_d2(timestep)
      &		+ colden_h2_d2
 
 c	colden_h2_d2 = Nrz(zone)  ! Trying radial column density
 
-	
+
 c	write(*,*) 'ColdenH2',colden_h2_tot_hd(timestep)
 c	write(*,*) 'ColdenHD',colden_hd_tot(timestep)
 
@@ -1956,34 +1957,34 @@ c take log10 of column density table to prepare for interpolation
 
 c changed to I/I0 at 1000 Ang
 	maxlam = 1000.0
-	call find_G0(maxlam, G0eval, zone, 1)	
+	call find_G0(maxlam, G0eval, zone, 1)
 
 c Linear interpolation
-	theta = interp(dlog10(colden_d2_tot(timestep)), 
+	theta = interp(dlog10(colden_d2_tot(timestep)),
      &		 lnh2, lee_theta_d2, n_lee_d2)
-	 
-C Shielding of HD by H2 (Wolcott-Green and Haimann 2011)	 
 
-	zet_2 = 2.34e+19  
+C Shielding of HD by H2 (Wolcott-Green and Haimann 2011)
+
+	zet_2 = 2.34e+19
 	x_2 = colden_h2_tot_d2(timestep)/zet_2
 	del_2 =  0.238
 	alph_2 = 5.2e-3
-	
+
 	f_2 = 1.0/(1.0+x_2)**del_2 * exp(-alph_2*x_2)
 
 	zet_1 = 2.85e23
 	x_1 = colden_h_tot_d2(timestep)/zet_1
 	del_1 = 1.62
 	alph_1 = 0.149
-	
+
 	f_1 = 1.0/(1.0+x_1)**del_1 * exp(-alph_1*x_1)
-	
+
 	if (colden_h2_tot_d2(timestep).ge.1e22) f_2 = 0.0
 	if (colden_h2_tot_d2(timestep).ge.1e24) f_1 = 0.0
-	
+
 c	print *, 'f_2',f_2,colden_h2_tot_hd(timestep)
-	
+
 	self_shield_D2 = 2.54e-11 * G0eval * theta * f_2 * f_1
 
 	RETURN
-	END	
+	END
