@@ -53,7 +53,7 @@ C Global parameter(s):
 
 C Common block 2 (input parameters)
 	  INTEGER Nr, Nz, zone, UVmaxzone
-      DOUBLE PRECISION Rs, Tg, Td, ZetaCR, rho, ngr, Nrz
+      DOUBLE PRECISION Rs, Tg, Td, ZetaCR, rho, ngr
 	  DOUBLE PRECISION uvfield, xrayfield, lambda
 	  DOUBLE PRECISION zAU, zcm, CRatten, totflux, ndust
 	  DOUBLE PRECISION xraylevels, xrayrate, xrayratesimon

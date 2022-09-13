@@ -8,6 +8,8 @@ models/.DS_Store
 out/*.inp
 */*.out
 *.out
+*.rout
 .DS_Store
 */.DS_Store
 */*1environ.inp*
+chemistry/xsect/*.calc
