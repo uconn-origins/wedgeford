@@ -37,18 +37,34 @@ class out: #Class that handles and stores the outputs and data for radmc3d after
             os.chdir(model.outdir)
         self.data.readDustDens() #self.data.rhodust is now loaded in
         d2g = self.m.disk['Mfrac'][0] #dust to gas ratio for small dust
-        self.rho['gas'] = model.rho_embedded(fluid=0).swapaxes(0,1)[:,:,0]
+        self.rho['gas'] = np.average(model.rho_embedded(fluid=0).swapaxes(0,1),axis=-1)
         ndust = np.shape(self.data.rhodust[0,0,0,:])[-1]
         for n in range(ndust):
-            self.rho['dust' + str(n+1)] = self.data.rhodust[:,:,0,n]
+            self.rho['dust' + str(n+1)] = np.average(self.data.rhodust[:,:,:,n],axis=-1)
     
     def T2D(self):
         if os.getcwd() != self.m.outdir:
             os.chdir(self.m.outdir)
         self.data.readDustTemp()#self.data.Tdust is now loaded in
-        self.T['dust'] = self.data.dusttemp[:,:,0,0] #only load first dust temp
+        self.T['dust'] = np.average(self.data.dusttemp[:,:,:,0],axis=-1) #only load first dust temp
         
-    def Jnu(self,field = 'UV',fname='mean_intensity.out'):
+    def T3D(self):
+        if os.getcwd() != self.m.outdir:
+            os.chdir(self.m.outdir)
+        self.data.readDustTemp()#self.data.Tdust is now loaded in
+        return self.data.dusttemp[:,:,:,0] #only load first dust temp
+    
+    def rho3D(self,fluid=0):
+        model = self.m
+        if os.getcwd() != model.outdir:
+            os.chdir(model.outdir)
+        if fluid == 0:
+            return model.rho_embedded(fluid=0).swapaxes(0,1)
+        self.data.readDustDens() #self.data.rhodust is now loaded in
+        if fluid > 0:
+            return self.data.rhodust[:,:,:,fluid-1]
+        
+    def Jnu(self,field = 'UV',fname='mean_intensity.out',average=True,iphi=0):
         shape = (len(self.r),len(self.theta),len(self.phi))
         if os.getcwd() != self.m.outdir:
             os.chdir(self.m.outdir)
@@ -70,7 +86,10 @@ class out: #Class that handles and stores the outputs and data for radmc3d after
         nu = header['freq'][indices]
         for j,k in zip(indices,range(len(nu))):
             jj = np.genfromtxt(fname,skip_header=4+header['nrcells']*j,max_rows=header['nrcells'])
-            Jnu[k] = jj.reshape(shape,order='F')[:,:,0]
+            if average == True:
+                Jnu[k] = np.average(jj.reshape(shape,order='F'),axis=-1)
+            else:
+                Jnu[k] = jj.reshape(shape,order='F')[:,:,iphi]
         self.J[field] = nu,Jnu
         
     def integrate_intensity(self,field='uv',photons=False):
@@ -161,6 +180,37 @@ def calc_gas_T(output):
     output.T['crit'] = Tcrit
     output.T['gas'] = Tgas
     
+
+def calc_gas_T3D(output):
+    model = output.m
+    shock = model.env['shock']
+    nH = np.log10(2.*rho3D(output)/(mu*mh))
+    nH_ = np.clip(nH,a_min=1,a_max=7)
+    np0 = len(model.phi)
+    
+    stream_mask = model.isolate_stream(dphi_frac=model.env['stream_frac'],nstream=model.env['nstreams'])
+    
+    T_dust = T3D(output)
+    T_gas = T_dust.swap_axes(0,1)
+    
+    for j in arange(np0):
+        output.Jnu(output,field='uv',iphi=j,average=False)
+        nG0 = np.log10(np.clip(output.integrate_intensity(field='uv')/(2.*pi*G0),a_min=10**-0.5,a_max=10**6.5))
+        T_UV = [model.T_heat(i,j)[0] for i,j in zip(nH_[:,:,j].flatten(), nG0[:,:,j].flatten())]
+        T_UV = np.reshape(np.array(T_UV),np.shape(nH[:,:,j])).T
+        if shock == True:
+            T_shock = model.solve_envelope(prop='Tg')[:,:,j]*stream_mask[:,:,j]
+        else:
+            T_shock = np.zeros_like(T_UV)
+        Tgas_tmp = np.maximum(T_UV,T_shock)
+        T_crit = 130*(10**(nH[:,:,j].T)/1e10)**(0.3)
+        coupled = np.where((Tgas_tmp-Tcrit)<= 1.0) 
+        Tgas_tmp[coupled] = 0.0
+        #assuming that the floor of the gas temperature in uncoupled regions is the dust temperature
+        T_gas[:,:,j] = np.maximum(Tgas_tmp,T_dust[:,:,j].T)
+    return T_gas
+        
+        
     
 def prep_line_transfer(output,molecules={'names':['co'],'abundances':[1e-4],'lines':[2]},heated=False):
     model = output.m
