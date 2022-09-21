@@ -80,8 +80,7 @@ C Local variables
 	DOUBLE PRECISION tempval, Cfac
 	DOUBLE PRECISION a_gr, Mlayer, ndens
 	DOUBLE PRECISION heliorad, crayreduc
-	DOUBLE PRECISION mu_i_j, kappa_ij
-	DOUBLE PRECISION grnfoc
+	DOUBLE PRECISION mu_i_j, kappa_ij, grnfoc
 	DOUBLE PRECISION stickingco,sigmagr,rgr
 	REAL mass_i,mass_j
 	REAL masscalculator
@@ -208,6 +207,8 @@ C      <*> Depends on grain size.
 
 		ELSE IF (rtype .EQ. -41) THEN
             calcrate = 0.0
+						print *, 'rgr value'
+						print *, rgr
             if (zone .gt. 3) then
 
                 Nsites = 1E6		! Number of sites per grain.
@@ -352,54 +353,54 @@ C     &         calcrateq,calcrateo,calcrate
 
             if (calcrate .lt. 1e-30) calcrate = 0.0
 
-C -45) X-ray thermal desorption (not implemented)
-C      using 21) Classical evaporation terms / thermal desorption (e = 101), from Bergin's gasgr.f code
-		ELSE IF (rtype.EQ.-45) THEN
+Cc -45) X-ray thermal desorption (not implemented)
+Cc      using 21) Classical evaporation terms / thermal desorption (e = 101), from Bergin's gasgr.f code
+c		ELSE IF (rtype.EQ.-45) THEN
 
-			IF ((Td(zone) .lt. 140).and.(zone.gt.2)) then
-				nu0 = ((2.0 * gamma * kbol * alpha)/(pi*pi*mH*beta))**0.5
-c				print *, 'n0', nu0,alpha, kbol,gamma
-				temperaturevec = dtaudt(:,1)
-				dervec = dtaudt(:,2)
-				v1_n = (nu0*dexp(-alpha/temperaturevec(1:63)))*dervec(1:63)
-				normrate = (nu0*dexp(-alpha/temperaturevec(63)))
-				v2_n = dervec(1:63)
-				numer_v1 = 0
-				denom_v2 = 0
-				del_h = temperaturevec(2:63)-temperaturevec(1:62)
-
-c				Integrate eq 13 of Hase. and Herb. via trapezoidal int. over the cool-
-c				down period.  Then weight by time spent in cool down vs. time spent
-c				in quiescent x-ray heating-less period.
-
-				do qn = 1,62
-					numer_v1 = numer_v1+0.5*(v1_n(qn)+v1_n(qn+1))*del_h(qn)
-					denom_v2 = denom_v2+0.5*(v2_n(qn)+v2_n(qn+1))*del_h(qn)
-				enddo
-
+c			IF ((Td(zone) .lt. 140).and.(zone.gt.2)) then
+c				nu0 = ((2.0 * gamma * kbol * alpha)/(pi*pi*mH*beta))**0.5
+cc				print *, 'n0', nu0,alpha, kbol,gamma
+c				temperaturevec = dtaudt(:,1)
+c				dervec = dtaudt(:,2)
+c				v1_n = (nu0*dexp(-alpha/temperaturevec(1:63)))*dervec(1:63)
+c				normrate = (nu0*dexp(-alpha/temperaturevec(63)))
+c				v2_n = dervec(1:63)
+c				numer_v1 = 0
+c				denom_v2 = 0
+c				del_h = temperaturevec(2:63)-temperaturevec(1:62)
+c
+cc				Integrate eq 13 of Hase. and Herb. via trapezoidal int. over the cool-
+cc				down period.  Then weight by time spent in cool down vs. time spent
+cc				in quiescent x-ray heating-less period.
+c
+c				do qn = 1,62
+c					numer_v1 = numer_v1+0.5*(v1_n(qn)+v1_n(qn+1))*del_h(qn)
+c					denom_v2 = denom_v2+0.5*(v2_n(qn)+v2_n(qn+1))*del_h(qn)
+c				enddo
+c
 c				Photons/second from rate_xray:
-				rate_xray = xrayheat_rate()
+c				rate_xray = xrayheat_rate()
 c				If the time between x-ray photons is longer than the hubble time set rate to zero.
-				if (1.0/rate_xray .gt. 4e17) then
-					calcrate = 0.0
-				else
+c				if (1.0/rate_xray .gt. 4e17) then
+c					calcrate = 0.0
+c				else
 c					write(*,*) 'vals ind: ',numer_v1,denom_v2
 C					Length of time between subsequent x-ray hits:
 c					Seconds per photon:
-					time_xray_hit = 1.0/rate_xray
-					time_xray_cooldown = dtaudt(63,3)
+C					time_xray_hit = 1.0/rate_xray
+C					time_xray_cooldown = dtaudt(63,3)
 c					write(*,*) 'vals: ',numer_v1/denom_v2, time_xray_cooldown/time_xray_hit
-					calcrate = numer_v1/denom_v2*time_xray_cooldown/time_xray_hit
-					write(*,*) 'th:',time_xray_hit,'tc:',time_xray_cooldown
-					write(*,*) 'x-ray calcrate:',calcrate
-					write(*,*) 'thermal calcrate:',normrate
-				endif
-            ELSE
-				calcrate = 0.0
+C					calcrate = numer_v1/denom_v2*time_xray_cooldown/time_xray_hit
+C					write(*,*) 'th:',time_xray_hit,'tc:',time_xray_cooldown
+C					write(*,*) 'x-ray calcrate:',calcrate
+C					write(*,*) 'thermal calcrate:',normrate
+C				endif
+C            ELSE
+C				calcrate = 0.0
 c				calcrate = 3.210335712098724E-002
-			ENDIF
+C			ENDIF
 
-			if (calcrate .lt. 1e-30) calcrate = 0.0
+C			if (calcrate .lt. 1e-30) calcrate = 0.0
 
 C -48) Radionuclide ionization (scaling taken from cosmic ray ionization rates). with time decay
 C     Turn off/on in 5flags.inp
@@ -534,7 +535,7 @@ C     beta == 0.0 appears never to be used.
 
 C 23) Depletion terms for ions.  From Bergin's gasgr.f code (mostly)
 C	  Cfac = factor which takes into account the charge of the accreting particle.
-C	  Eqn. 9 from Willacy et al. 1998 (a = 1000 A)
+C	  Eqn. 9 from Willacy et al. 1998 (a = 1000 A = 0.1 um = 1e-5 cm)
 C      <*> Depends on grain size.
 
 	ELSE IF (rtype.EQ.23) THEN
@@ -542,8 +543,8 @@ C      <*> Depends on grain size.
 		stick = gamma
 
 C       Back out the grain size from freezeout efficiency:
-		grnfoc = 1D-5*freezeeffic**(-1.0/1.5)
-		stickingco = 0.3
+C   Changed to base on local dust surface area correction, KRS 5/20/22
+		grnfoc = 1.0D-5 * (sigadjust)**0.5
 		stickingco = 1.0
 
 		Cfac = 1 + 16.71D-4 / (grnfoc * Tg(zone))
@@ -566,7 +567,7 @@ C      <*> Depends on grain size.
 	    if (zone .gt. 3) then
 			Nsites = 1E6		! This should really be an input parameter, also used for uvfield.f
             if (freezeeffic .ne. 1.0) then
-                sigmagr = pi*(rgr*freezeeffic**(-1.0/1.5))**2
+								sigmagr = sigadjust * pi * rgr
                 Nsites = Nsites * sigmagr/(pi*rgr**2)  ! scale number of sites by increase/decrease in surface area per grain (grain growth)
             end if
 
