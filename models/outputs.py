@@ -530,12 +530,12 @@ def prep_he_transfer(output,nx=5,nu=5):
     
     if model.rad['xray'] == True:
         he_lam = np.append(x_lam,u_lam)
+        write_opacities(model,update=True)
     else:
         he_lam = u_lam
         
     write_wavelength(model,wav=he_lam,fname=model.outdir+'mcmono_wavelength_micron.inp')
     write_gas_density(model)
-    write_opacities(model,update=True)
     write_main(model, scat=2, mrw=1, maxtau=20)
     
 def do_he_transfer(output,nphot=100000,nt=4,prep=False,**prepkw):

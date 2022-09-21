@@ -254,7 +254,7 @@ def write_viscous_heatsource(model,accrate=None):
             heat = D_disk.swapaxes(0,1).ravel(order='F')# radmc assumes 'ij' indexing for some reason Create a 1-D view, fortran-style indexing
             heat.tofile(f, sep='\n', format="%13.6e")
 
-def write_opacities(model,ndust=2,filenames=['',''],update=True,header=False):
+def write_opacities(model,ndust=2,filenames=['',''],update=True):
     """ checks for the dust_kappa..inp files, runs optool calculation if not present to write new ones
     updates the dust_opac.inp file with the names of the dust_kappa.inp files
     Parameters:
@@ -266,8 +266,6 @@ def write_opacities(model,ndust=2,filenames=['',''],update=True,header=False):
     filenames: list of str, optional, names of the dust opacity files 
     
     update: boolean, if True, opacities are updated with the x-ray opacities from BB11
-    
-    header: boolean, if True and update is True, assumes the files to update were written by optool, otherwise default radmc3d format
     
     """
     iformat = 3
@@ -290,7 +288,7 @@ def write_opacities(model,ndust=2,filenames=['',''],update=True,header=False):
             print('Updating x-ray opacities')
             kappa_file = "{}dustkappa_dust-{}x.inp".format(model.outdir,fluid)
             if os.path.exists(kappa_file) != True:
-                wav, kabs, kscat, g  = read_kappa(model,fluid=fluid,filename=fname,header=header)
+                wav, kabs, kscat, g  = read_kappa(model,fluid=fluid,filename=fname)
                 wav, kabs_new = model_kappa_xray(model,wav=wav,fluid=fluid)
                 kabs[kabs_new !=0] = kabs_new[kabs_new!=0]
                 arrays = np.stack((wav,kabs,kscat,g),axis=-1)

@@ -522,7 +522,7 @@ class chemdisk:
                         val = '{:9.3E}'.format(tkwargs['first']).replace('E','D')
                     if comment.startswith('total') and tkwargs['total'] is not None:
                         val = str(tkwargs['total'])
-                    new_line = val + '\t #' + comment
+                    new_line = val + '\t #' + comment + '\n'
                     file_contents.append(new_line)
         self.inpfiles['2times'] = file_contents
     
@@ -585,7 +585,7 @@ class chemdisk:
                         val = '{:9.3E}'.format(tolkwargs['rel']).replace('E','D')
                     if comment.startswith('abs') and tolkwargs['abs'] is not None:
                         val = '{:9.3E}'.format(tolkwargs['abs']).replace('E','D')
-                    new_line = val + '\t #' + comment
+                    new_line = val + '\t #' + comment + '\n'
                     file_contents.append(new_line)
         self.inpfiles['4toleran'] = file_contents
     
@@ -724,17 +724,17 @@ def write_uv(chem_disk):
     with open(chem_disk.input.m.parent_dir+'chemistry/' + 'uv_photons_{}.dat'.format(run_name),'w') as f:
         f.write('{}\n'.format(header))
         for j in range(np.shape(spectrum)[1]):
-            rheader = 'Radius(AU)\t {:8.4f}\n'.format(chem_disk.data['r'][0,j])
-            zheader = 'z(AU)\t' + '{:8.4f}'*np.shape(spectrum)[0]
+            rheader = 'Radius(AU) {:9.4f} \n'.format(chem_disk.data['r'][0,j])
+            zheader = 'z(AU)' + '{:10.4f}'*np.shape(spectrum)[0]
             zheader_vals = chem_disk.data['z'][:,j]
             zhead = zheader.format(*zheader_vals) + '\n'
-            wavhead = 'Wavelength A \t Photons/cm2/s/A \n'
+            wavhead = 'Wavelength A               Photons/cm2/s/A \n'
             f.write(rheader)
             f.write(zhead)
             f.write(wavhead)
             row = zip(wav_chem, [spectrum[:,j,-i] for i in range(np.shape(spectrum)[2])])
             for r in row:
-                f.write('{:8.2f}'.format(r[0]) + ('{:10.2E}'*np.shape(spectrum)[0]).format(*r[1]) + '\n')
+                f.write('{:7.2f}'.format(r[0]) + ('{:10.2e}'*np.shape(spectrum)[0]).format(*r[1]) + '\n')
 
 def write_xray(chem_disk):
     """ writes the xray.dat file for the chemical code
@@ -751,17 +751,17 @@ def write_xray(chem_disk):
     with open(chem_disk.input.m.parent_dir+'chemistry/' + 'xray_photons_{}.dat'.format(run_name),'w') as f:
         f.write('{}\n'.format(header))
         for j in range(np.shape(spectrum)[1]):
-            rheader = 'Radius(AU)\t {:8.4f}\n'.format(chem_disk.data['r'][0,j])
-            zheader = 'z(AU)\t' + '{:8.4f}'*np.shape(spectrum)[0]
+            rheader = 'Radius(AU) {:9.4f}\n'.format(chem_disk.data['r'][0,j])
+            zheader = 'z(AU)' + '{:10.4f}'*np.shape(spectrum)[0]
             zheader_vals = self.data['z'][:,j]
             zhead = zheader.format(*zheader_vals) + '\n'
-            wavhead = 'Energy(keV) \t Photons/cm2/s/keV \n'
+            wavhead = 'Energy(keV)             Photons/cm2/s/keV \n'
             f.write(rheader)
             f.write(zhead)
             f.write(wavhead)
             row = zip(wav_chem, [spectrum[:,j,-i] for i in range(np.shape(spectrum)[2])])
             for r in row:
-                f.write('{:8.2f}'.format(r[0]) + ('{:10.2E}'*np.shape(spectrum)[0]).format(*r[1]) + '\n')
+                f.write('{:7.2f}'.format(r[0]) + ('{:10.2e}'*np.shape(spectrum)[0]).format(*r[1]) + '\n')
                 
 def write_chem_inputs(chem_disk):
     """ writes all the chem input files at once

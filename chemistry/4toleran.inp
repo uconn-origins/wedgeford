@@ -1,5 +1,7 @@
 # Requested tolerance:
-1.000D-7	 #relative error of the calculations, 'relerr',1.000D-20	 #absolute error of the calculations, 'abserr'# Default - rtol = 1e-8, atol=1e-21.  1e-4, 1e-10 used for inner few radii
+1.000D-7	 #relative error of the calculations, 'relerr',
+1.000D-20	 #absolute error of the calculations, 'abserr'
+# Default - rtol = 1e-8, atol=1e-21.  1e-4, 1e-10 used for inner few radii
 # For specific species, the format is: rel/abs species tolerance
 #abs     GRAIN0  1.000D-04
 # EOF
