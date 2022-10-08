@@ -1,49 +1,32 @@
 # wedgeford
 Code repository for the Warm Emission Due to Gas Envelopes Falling Onto Rotating Disks (WEDGEFORD) project
 
+WEDGEFORD is a framework for generating thermochemical models of embedded protostellar objects. The code uses RADMC3D to process three dimensional models of disks and their envelopes in order to calculate the dust temperatures, radiation fields, and gas temperatures and inputs into astrochemical computations. The current [chemistry module](./chemistry) writes inputs for a chemical code based on Fogel et al. (2011).
 
-## Basic Code Workflow 
-
-+ Create a physical model of a disk and infalling envelope for some number of dust species:
-    + Grid
-        + spherical coordinate grid in `r,theta,phi`
-            + `model.make_grid()` (3d version)
-            + `model.r, model.theta, model.phi` (1d versions)
-            + output file: `"amr_grid.inp"`  
-    + Gas component
-        + Ulrich-envelope + gas disk with thermal disk scale height set by irradiation
-        + output: array of 3d volume densities 
-            + `model.rho_embedded(fluid=0)`  
-    + Dust
-        + Several dust species, with sizes and opacities generated from library
-        + output: array of 3d volume densities
-            + `model.rho_embedded(fluid=1,2...etc)`    
-+ Run `radmc3d mctherm` on model outputs
-    + output file: `"dust_temperature.dat"` 
-    + output: 3-d dust temperature on the original spherical grid 
-+ Slice a quadrant in r-z and interpolate (densities and temperatures) onto a cylindrical grid in r and z
-    + `model.make_rz_uniform()`
-    + `model.make_quadrant(,fluid=...)`
-    + output file: `gas..out`
-+ Compute cosmic ray attentuation based on column density at each point in the r,z grid
-    + `model.zeta()`
-+  Run UV and X-ray radiative transfer
-    + input: `gas..out` 
-    + output: UV and X-ray fluxes at each point in the r,z grid
-    + output files: `uv..dat` and `xray.dat`
-+ Generate input files for chemical models  
-    + chemistry inputs: `uv..dat`, `xray..dat`, `1_env..inp` 
-    + `taurus_2_chem.py` makes `1_env..inp`
-+ Run chemical models  
+Libraries used:
+radmc3d (fortran executable)
+radmcpy (python library)
+optool (fortran executable)
 
 
-## Code components
-### [Tutorial notebook](./make_model.ipynb): basic notebook to set up a problem in radmc3d.
+## Parameters
+The code uses a set of parameters to self-consistently set the information to be used for the physical, thermal, and chemical computations. Sample parameter libraries can be found in [`models/templates/param_library.py`](./models/templates/param_library.py)
 
-+ [models](./models/index.md)
-  + Creation of model object
-  + Radiative Transfer of model to calculate dust temperature
-  + Cosmic ray attenuation
-+ [chemistry](./chemistry/index.md)
-  + Full chemical modeling
+To initialize a new object, you just need to pass a dictionary of parameters and an output directory path to the `initialize_model` function. 
 
+To load a model from an existing model directory, the path of the directory can be passed into `load_model`
+
+### Physical Model
+The basic physical model is a disk and envelope component with two populations of dust grains (small and large), with only large grains settled in the disk. 
+
+There is the option to load in the density distribution of dust and gas from FARGO data ['models/import_fargo.py'](./models/import_fargo.py)
+
+Further details for how the physical model is generated can be found in [`models/models.py` ](./models/models.py)
+
+### Radiative Transfer
+Radiative transfer of thermal and high energy photons (UV + X-ray) is done with RADMC-3D. How the model interfaces with the RADMC-3D outputs can be found in ['models/outputs.py'](./models/outputs.py).
+Models for setting the radiation sources is in ['models/radation.py'](./models/radiation.py) and modules for the dust properties (which can be generated with optool) is in ['models/dust.py'](./models/dust.py).
+
+Specific functions to write radmc files are in ['models/write_radmc_files.py'](./models/write_radmc_files.py).
+
+ 

@@ -38,17 +38,36 @@ class chemdisk:
     zgrid: optional, None or array with the cell faces of the vertical grid dimensions in z/r
          if None, default grid will be logarithmically spaced bounded by envelope cavity and have 50 cells.
 
-        
+    iodict: dict, optional
+            can use this to change the default .inp files to use as templates for running the chemistry code and the values within them
+            if you run set_X() commands with new parameter dictionaries, they will automatically update this dictionary
+            keys are the integer of the setup file, while values are dictionaries with keys matching the new flags
     """
     
-    def __init__(self,output,chemdir = '/test1/',rgrid = None, zgrid = None):   
+    def __init__(self,output,chemdir = '/test1/',rgrid = None, zgrid = None, iodict= {}):   
 
         self.input = output
         model = output.m
-        self.chemdir = self.input.m.parent_dir + 'chemistry/environ' + chemdir
-        self.rundir = self.input.m.parent_dir + 'chemistry/runs' + chemdir
+        chemdir = chemdir.strip('/')
+        self.parentchemdir = '/'.join([self.input.m.parent_dir ,'chemistry'])
+        self.chemdir = '/'.join([self.parentchemdir ,'environ' , chemdir]) + '/'
+        self.rundir = '/'.join([self.parentchemdir, 'runs' ,chemdir]) + '/'
         if os.getcwd() != self.input.m.outdir:
             os.chdir(self.input.m.outdir)
+            
+        self.iodict = {}
+        self.iodict['0'] = {'reactions':'herb0308gr','species':'herb0308gr','name':'', 'abund0':None}
+        self.iodict['2'] = {'first':None,'last':None,'total':None}
+        self.iodict['3'] = {'name':'','newvals': {}}
+        self.iodict['4'] = {'rel':None,'abs':None}
+        self.iodict['5'] = {}
+        self.iodict['6'] = {'name':''}
+        
+        for key,valdict in iodict.items():
+            if key in self.iodict.keys():
+                for param in valdict.keys():
+                    if param in self.iodict[key].keys():
+                        self.iodict[key][param] = valdict[param]
             
         if rgrid is None:
             rmin = model.grid['min'][0]
@@ -90,7 +109,7 @@ class chemdisk:
         try:
             os.mkdir(self.rundir)
         except:
-            print('run directory exists!')
+            print('run directory exists !')
     
     
     def make_rz_H(self): 
@@ -409,12 +428,14 @@ class chemdisk:
             field_index = (wav_rt >= uv_min) & (wav_rt <= uv_max)
             wav_chem = np.arange(930,2010,10) #in angstroms
             wav_mu = wav_chem * 1e-4 #angstroms to microns
+            field_index_comp = (wav_mu >= uv_min) & (wav_mu <= uv_max)
             wav_conv = 1e-8* c/(wav_mu*1e-4)**2 #convert /Hz to /angstrom dnu/dwav
         
         if field == 'xray':
-            field_index = (wav_rt >= xray_min) & (wav_rt <= xray_max)
-            wav_chem = np.arange(1,21,1) #in keV
+            wav_chem = np.arange(1,21,1)[::-1] #in keV
             wav_mu = (1e4*h*c)/(wav_chem*keV) #in microns
+            field_index = (wav_rt >= xray_min) & (wav_rt <= xray_max)
+            field_index_comp = (wav_mu >= xray_min) & (wav_mu <= xray_max)
             wav_conv = (keV/h) #convert /Hz to /keV
             
         freq_field = freq[field_index]
@@ -424,10 +445,11 @@ class chemdisk:
         fnu_out_grid = Jnu[:,:,:,field_index]*4.*pi
 
         #input spectra
-        fnu0_1d = calc_input_spectrum(model,wav=wav_field)
         fnu0_1d_hires = calc_input_spectrum(model,wav=wav_mu)
-
-        f0_tot = np.trapz(fnu0_1d, x = c/wav_field * 1e4)*-1.
+        fnu0_1d = calc_input_spectrum(model,wav=wav_field)
+        fnu0_1d_interp = 10**np.interp(np.log10(wav_mu),np.log10(wav_field),np.log10(fnu0_1d))
+        
+        f0_tot = np.trapz(fnu0_1d_interp, x = c/wav_mu * 1e4)*-1.
         f0_tot_hires = np.trapz(fnu0_1d_hires, x = c/wav_mu * 1e4)*-1.
 
         # error in the total flux due to lower resolution of mcmono wavelengths
@@ -438,6 +460,7 @@ class chemdisk:
 
         #input spectrum on chemical spatial grid
         fnu0_chem_grid = np.expand_dims(fnu0_1d,axis=(0,1))*(pc**2 / R2_chem)
+        fnu0_chem_grid_interp = np.expand_dims(fnu0_1d_interp,axis=(0,1))*(pc**2 / R2_chem)
         fnu0_chem_grid_hires = np.expand_dims(fnu0_1d_hires,axis=(0,1))* (pc**2 / R2_chem)
 
         #adding in the external ISRF to the initial field
@@ -451,36 +474,40 @@ class chemdisk:
             isrf0_chem_grid = 4*pi*np.expand_dims(isrf_1d,axis=(0,1))*(Rgg**2)/(Rg - np.sqrt(R2_chem))**2
             isrf0_chem_grid_hires = 4*pi*np.expand_dims(isrf_1d_hires,axis=(0,1))*(Rgg**2)/(Rg - np.sqrt(R2_chem))**2
 
-            #g_tot = np.trapz(isrf0_chem_grid, x = c/wav_field * 1e4,axis=-1)*-1
-            #g_tot_hires = np.trapz(isrf0_chem_grid_hires, x = c/wav_mu * 1e4,axis=-1)*-1
-
             fnu0_chem_grid += isrf0_chem_grid
             fnu0_chem_grid_hires += isrf0_chem_grid_hires
 
-        #interpolating onto chemistry grid
+        #interpolating fluxes onto chemistry (spatial) grid
         for j in np.arange(len(freq_field)):
             fnu_chem_grid_temp = np.expand_dims(self.make_quadrant(fnu_out_grid[:,:,:,j]),axis=-1)
-            fnu_chem_grid_temp = np.minimum(fnu_chem_grid_temp, np.expand_dims(fnu0_chem_grid[:,:,j],axis=-1)*(1 + err_sum)) 
+            fnu_chem_grid_temp = np.minimum(fnu_chem_grid_temp, np.expand_dims(fnu0_chem_grid[:,:,j],axis=-1)) 
             if j < 1 :
                 fnu_chem_grid = fnu_chem_grid_temp.copy()
             else:
                 fnu_chem_grid = np.dstack((fnu_chem_grid,fnu_chem_grid_temp))
 
-        #function to interpolate between attenuated fluxes
+        #function to interpolate between attenuated fluxes for wavelengths
         coeff = interpolate.interp1d(x=wav_field, y=(fnu_chem_grid/fnu0_chem_grid),axis=-1,fill_value='extrapolate',kind='slinear')
 
-        coeff_chem_grid = coeff(wav_field)
+        #coeff_chem_grid = coeff(wav_field)
         coeff_chem_grid_hires = coeff(wav_mu)
 
-        f_tot = np.trapz(coeff_chem_grid*fnu0_chem_grid, x = c/wav_field * 1e4,axis=-1)*-1
-        f_tot_hires = np.trapz(coeff_chem_grid_hires*fnu0_chem_grid_hires, x = c/wav_mu * 1e4,axis=-1)*-1
-
+        #f_tot = np.trapz(coeff_chem_grid*fnu0_chem_grid, x = c/wav_field * 1e4,axis=-1)*-1
+        f_tot = np.trapz(coeff_chem_grid_hires*fnu0_chem_grid_interp, x = c/wav_mu * 1e4,axis=-1)*-1
+        f_tot_hires = np.trapz((coeff_chem_grid_hires*fnu0_chem_grid_hires), x = c/wav_mu * 1e4,axis=-1)*-1
+        
         #correction factor to ensure total flux remains the same for interpolated spectrum
-        #usually this is on the order of a few percent anyway
-        norm_fac = np.expand_dims(f_tot*(1 + err_sum)/f_tot_hires, axis=-1)
+        #usually this is on the order of a few percent 
+        norm_fac = np.expand_dims(f_tot*(1.+err_sum)/f_tot_hires, axis=-1)
+        norm_fac[np.isnan(norm_fac)] = 1.
+        
         photon_e = 1./(h*c/(wav_mu*1e-4))
+        
         spec_final = coeff_chem_grid_hires*fnu0_chem_grid_hires*norm_fac*wav_conv*photon_e
+        spec_final[np.isnan(spec_final)] = 0.0
         return spec_final
+    
+
     
     def set_1(self):
         """ calculates necessary columns for 1environ.inp
@@ -494,7 +521,7 @@ class chemdisk:
         self.calc_dustfrac()
         self.calc_zeta()
     
-    def set_2(self,tkwargs={'first':None,'last':None,'total':None}):
+    def set_2(self,tkwargs={}):
         """ sets values for 2times.inp from template with the option 
         to set new values
         
@@ -509,6 +536,16 @@ class chemdisk:
         template_path = self.input.m.parent_dir+'chemistry/templates/'
         template_file = template_path + '2times.inp'
         file_contents = []
+        
+        if tkwargs == {}:
+            tkwargs = self.iodict['2']
+            print('2times.inp: default values from template file')
+        else:
+            for key in self.iodict['2'].keys():
+                if key in tkwargs.keys():
+                    self.iodict['2'][key] = tkwargs[key]
+                    print('2times.inp: {} set to {}'.format(key,tkwargs[key]))
+                    
         with open(template_file, 'r') as f:
             for line in f:
                 if line.startswith('#'):
@@ -525,8 +562,8 @@ class chemdisk:
                     new_line = val + '\t #' + comment + '\n'
                     file_contents.append(new_line)
         self.inpfiles['2times'] = file_contents
-    
-    def set_3(self,name ='', **new_values):
+        
+    def set_3(self,fkwargs={}):
         """
         updates values for 3abunds.inp from a template file
         with new values from an input dictionary
@@ -535,20 +572,36 @@ class chemdisk:
         
         Parameters:
         ------------
+        fkwargs, dict with keys:
+        
         name: str, optional: file suffix for specific template file 
         
         new_values: dict, optional
                     keys: grain name, case sensitive
                     values: new initial abundance to set
         """
-        template_path = self.input.m.parent_dir+'chemistry/templates/'
-        template_file = template_path + '3abunds' + name + '.inp'
+        
+        if fkwargs == {}:
+            fkwargs = self.iodict['3']
+        else:
+            for key in self.iodict['3'].keys():
+                if key in fkwargs.keys():
+                    self.iodict['3'][key] = fkwargs[key]
+                    
+                    
+        template_path = '/'.join([self.parentchemdir,'templates/'])
+        template_file = template_path + '3abunds' + fkwargs['name'] + '.inp'
+        print('3abunds.inp: using values from template file' + template_file)
         file_contents = []
+        
+        new_values = fkwargs['newvals']
+        
         with open(template_file, 'r') as f:
             for line in f:
                 if line.startswith('#') == True:
                     old_species  = line.strip('#').split(' ')[0].strip()
                     if old_species in new_values.keys():
+                        print('3abunds.inp: updating ' + old_species )
                         new_val = '{:9.3E}'.format(new_values[old_species]).replace('E','D')
                         new_line = '{:<11} = {}\n'.format(old_species,new_val)
                     else:
@@ -556,14 +609,15 @@ class chemdisk:
                 else: 
                     old_species = line.split(' ')[0].strip()
                     if old_species in new_values.keys(): #if resetting, update the value
+                        print('3abunds.inp: updating ' + old_species )
                         new_val = '{:9.3E}'.format(new_values[old_species]).replace('E','D')
                         new_line = '{:<11} {}\n'.format(old_species,new_val)
                     else:
                         new_line = line
                     file_contents.append(new_line)
-        self.inpfiles['3abunds'+name] = file_contents
+        self.inpfiles['3abunds'+fkwargs['name']] = file_contents
     
-    def set_4(self, tolkwargs = {'rel':None,'abs':None}):
+    def set_4(self, tolkwargs = {}):
         """ sets the values for the 4toleran.inp file from template with the option to set new ones
         Parameters:
         ----------
@@ -571,9 +625,20 @@ class chemdisk:
         keys: 'rel','abs': relative and absolute tolerance levels
         
         """
-        template_path = self.input.m.parent_dir+'chemistry/templates/'
+        template_path = '/'.join([self.parentchemdir,'templates/'])
         template_file = template_path + '4toleran.inp'
         file_contents = []
+        
+        
+        if tolkwargs == {}:
+            tolkwargs = self.iodict['4']
+            print('4toleran.inp: using default value from template file')
+        else:
+            for key in self.iodict['4'].keys():
+                if key in tolkwargs.keys():
+                    self.iodict['4'][key] = tolkwargs[key]
+                    print('4toleran.inp: updating {} to {}'.format(key,tolkwargs[key]))
+        
         with open(template_file, 'r') as f:
             for line in f:
                 if line.startswith('#'):
@@ -589,18 +654,27 @@ class chemdisk:
                     file_contents.append(new_line)
         self.inpfiles['4toleran'] = file_contents
     
-    def set_5(self,**flags):
+    def set_5(self,fkwargs={}):
         """ sets the values for '5flags.inp' from template
         with the option to set new flags
         
         Parameters:
         -----------
-        flags: dict, optional 
+        fkwargs: dict, optional 
         keys: flags in 5flags.inp
         values: 0 or 1 to turn flag on or off
         
         """
-        template_path = self.input.m.parent_dir+'chemistry/templates/'
+        
+        if fkwargs == {}:
+            fkwargs = self.iodict['5']
+            print('5flags.inp: using default values from template file')
+        else:
+            self.iodict['5'] = fkwargs
+            
+        
+        
+        template_path = '/'.join([self.parentchemdir,'templates/'])
         template_file = template_path + '5flags.inp'
         file_contents = []
         with open(template_file, 'r') as f:
@@ -610,22 +684,33 @@ class chemdisk:
                 else: #this is a line that sets parameters
                     param, val = line.split('=')
                     param = param.strip()
-                    if param in flags.keys(): #if resetting, update the value
-                        new_line = '{:<15} = {}\n'.format(param,flags[param])
+                    if param in fkwargs.keys(): #if resetting, update the value
+                        print('5flags.inp: updating'.foramt(param, fkwargs[param]))
+                        new_line = '{:<15} = {}\n'.format(param,fkwargs[param])
                     else:
                         new_line = line
                     file_contents.append(new_line)
         self.inpfiles['5flags'] = file_contents
 
-    def set_6(self,name=''):
+    def set_6(self,fkwargs={}):
         """ reads in a template 6grainbe.inp file
         Parameters:
         ------------
         name: str, optional, file suffix for template name
         
         """
-        template_path = self.input.m.parent_dir+'chemistry/templates/'
-        template_file = template_path + '6grainbe' + name + '.inp'
+        
+        if fkwargs == {}:
+            fkwargs = self.iodict['6']
+        else:
+            for key in self.iodict['6'].keys():
+                if key in fkwargs.keys():
+                    self.iodict['6'][key] = fkwargs[key]
+                    
+        template_path = '/'.join([self.parentchemdir,'templates/'])
+        template_file = template_path + '6grainbe' + fkwargs['name'] + '.inp'
+        print('6grainbe.inp: using values from template file' + template_file)
+        
         file_contents = []
         with open(template_file, 'r') as f:
             for line in f:
@@ -633,7 +718,7 @@ class chemdisk:
         self.inpfiles['6grainbe'] = file_contents
                 
 
-def contents_to_file(chem_disk,file_contents,fileprefix):
+def contents_to_file(chem_disk,file_contents,fileprefix,filepath=None):
     """ helper function to write input file content to requisite file
     Parameters:
     ----------
@@ -641,12 +726,16 @@ def contents_to_file(chem_disk,file_contents,fileprefix):
     file_contents: lines to write to fle
     file_prefix: name of file to be written
     """
-    filepath = chem_disk.input.m.parent_dir+'chemistry/' + fileprefix + '.inp'
+    if filepath is None:
+        filepath = chem_disk.rundir + fileprefix + '.inp'
+    #filepath = chem_disk.input.m.parent_dir+'chemistry/' + fileprefix + '.inp'
     with open(filepath,'w') as f:
         for line in file_contents:
             f.write(line)
 
-def write_0(chem_disk,reactions='herb0308gr',species='herb0308gr',name='', abund0 = 'None'):
+            
+
+def write_0(chem_disk,fkwargs = {}):
     """ writes 0io input file 
     Parameters:
     ----------
@@ -661,16 +750,56 @@ def write_0(chem_disk,reactions='herb0308gr',species='herb0308gr',name='', abund
     abund0: str, initial 2D abundance file name default: None
     
     """
+    
+    if fkwargs == {}:
+        fkwargs = chem_disk.iodict['0']
+    else:
+        for key in chem_disk.iodict['0'].keys():
+            if key in fkwargs.keys():
+                chem_disk.iodict['0'][key] = fkwargs[key]
+                    
     mdir = chem_disk.input.m.outdir.strip('/').split('out/')[-1]
-    with open(chem_disk.chemdir + '0io' + name + '.inp', 'w') as f:
+    template_path = '/'.join([chem_disk.parentchemdir,'templates/'])
+    template_reacs_file = 'rreacs_' + fkwargs['reactions'] + '.dat'
+    template_species_file = 'rspecies_' + fkwargs['reactions'] + '.dat'
+    
+    file_error = 0
+    
+    with open(chem_disk.chemdir + '0io' + fkwargs['name'] + '.inp', 'w') as f:
         f.write('# input & output files:\n')
-        f.write('rspecies_{}.dat \t # file with species\n'.format(species))
-        f.write('rreacs_{}.dat \t # file with reactions\n'.format(reactions))
+        f.write('rspecies_{}.dat \t # file with species\n'.format(fkwargs['species']))
+        f.write('rreacs_{}.dat \t # file with reactions\n'.format(fkwargs['reactions']))
         f.write('uv_photons_{}.dat \t # file with uvfield\n'.format(mdir))
         f.write('xray_photons_{}.dat \t # file with xrfield\n'.format(mdir))
         f.write('None \t # file with ISRF \n') #already in outputs from uv/xray field
         f.write('None \t # Radionuclide Ion Rate\n' ) #build this in later?
-        f.write('{} \t # initial 2D abundance file \n'.format(abund0)) #default is None
+        f.write('{} \t # initial 2D abundance file \n'.format(fkwargs['abund0'])) #default is None
+    
+    for template_file in [template_reacs_file, template_species_file]:
+        print('0inp: using {}'.format(template_reacs_file))
+        exit = os.system('cp {} {}'.format(template_path+template_file, chem_disk.rundir))
+        if exit != 0:
+            print('0inp: ERROR copying {} to run directory'.format(template_file))
+            file_error += 1
+    
+    #if you specified an abund0 file it will look for it in the run directory, otherwise, it will look for it in the templates directory
+    if fkwargs['abund0'] is not None:
+        if os.path.exists(chem_disk.rundir + fkwargs['abund0']) == True:
+            print('0inp: using {} in run directory'.format(fkwargs['abund0']))
+        else:
+            print('0inp: did not find {} in run directory: {}'.format(fkwargs['abund0'], chem_disk.rundir))
+            if os.path.exists(template_path + fkwargs['abund0']) == True:
+                exit = os.system('cp {} {}'.format(template_path+fkwargs['abund0'], chem_disk.rundir))
+                if exit != 0:
+                    print('0inp: ERROR copying {} to run directory'.format(fkwargs['abund0']))
+                    file_error += 1
+                else:
+                    print('0inp: using {} in templates directory'.format(fkwargs['abund0']))
+            else:
+                print('0inp: ERROR did not find {} in either run or templates directory'.format(fkwargs['abund0']))
+                file_error += 1
+    return file_error
+              
         
 def write_1(chem_disk,index):
     """ writes a 1environ.inp file for a single zone
@@ -686,6 +815,7 @@ def write_1(chem_disk,index):
     keys = ['r', 'rhog','ngrain','Tg','Td','z','zcm','zeta','dustfrac']
     vals = [chem_disk.data[key][:,index] for key in keys]
     towrite = dict(zip(keys,vals))
+    file_error = 0
     nz = chem_disk.nz
     name = '.e1.{:.4f}'.format(towrite['r'][0])
     with open(chem_disk.chemdir + '1environ.inp' + name, 'w') as f:
@@ -694,7 +824,11 @@ def write_1(chem_disk,index):
         f.write('{:}\n'.format(nz))
         for j in np.arange(nz):
             row = [towrite[key][::-1][j] for key in keys]
+            if np.any(np.isnan(row)):
+                print('1environ.inp{} ERROR: nans found'.format(name))
+                file_error += 1
             f.write('{:11.5E} {:11.5E} {:11.5E} {:11.5E} {:11.5E} {:11.5E} {:11.5E} {:11.5E} {:11.5E}\n'.format(*row))
+    return file_error
             
 def write_environ(chem_disk):
     """ writes all the 1environ.inp files
@@ -703,13 +837,14 @@ def write_environ(chem_disk):
     chem_disk: chem_disk object
     
     """
-    write_0(chem_disk)
+    fe = write_0(chem_disk)
     nr = chem_disk.nr
     for i in np.arange(nr):
-        write_1(chem_disk,i)
+        fe += write_1(chem_disk,i)
+    return fe
             
     
-def write_uv(chem_disk):
+def write_uv(chem_disk,filepath = None):
     """ writes the uv.dat file for the chemical code
     Parameters:
     -----------
@@ -721,7 +856,12 @@ def write_uv(chem_disk):
     spectrum = chem_disk.regrid_radiation(field='uv') #z,r,wavelength
     run_name = chem_disk.input.m.outdir.strip('/').split('out/')[-1]
     header = 'Results from RT code with run: {}'.format(run_name)
-    with open(chem_disk.input.m.parent_dir+'chemistry/' + 'uv_photons_{}.dat'.format(run_name),'w') as f:
+    file_error = 0
+    
+    if filepath is None:
+        filepath = chem_disk.rundir
+    #with open(chem_disk.input.m.parent_dir+'chemistry/' + 'uv_photons_{}.dat'.format(run_name),'w') as f:
+    with open(filepath + 'uv_photons_{}.dat'.format(run_name),'w') as f:
         f.write('{}\n'.format(header))
         for j in range(np.shape(spectrum)[1]):
             rheader = 'Radius(AU) {:9.4f} \n'.format(chem_disk.data['r'][0,j])
@@ -734,9 +874,13 @@ def write_uv(chem_disk):
             f.write(wavhead)
             row = zip(wav_chem, [spectrum[:,j,-i] for i in range(np.shape(spectrum)[2])])
             for r in row:
+                if np.any(np.isnan(r[1])):
+                    print('uv file ERROR: nans found'.format(name))
+                    file_error += 1
                 f.write('{:7.2f}'.format(r[0]) + ('{:10.2e}'*np.shape(spectrum)[0]).format(*r[1]) + '\n')
+    return file_error
 
-def write_xray(chem_disk):
+def write_xray(chem_disk,filepath=None):
     """ writes the xray.dat file for the chemical code
     Parameters:
     -----------
@@ -748,12 +892,16 @@ def write_xray(chem_disk):
     spectrum = chem_disk.regrid_radiation(field='xray') #order is z, r, wavelength
     run_name = chem_disk.input.m.outdir.strip('/').split('out/')[-1]
     header = 'Results from RT code with run: {}'.format(run_name)
-    with open(chem_disk.input.m.parent_dir+'chemistry/' + 'xray_photons_{}.dat'.format(run_name),'w') as f:
+    file_error = 0
+    if filepath is None:
+        filepath = chem_disk.rundir
+    #with open(chem_disk.input.m.parent_dir+'chemistry/' + 'xray_photons_{}.dat'.format(run_name),'w') as f:
+    with open(filepath + 'xray_photons_{}.dat'.format(run_name),'w') as f:
         f.write('{}\n'.format(header))
         for j in range(np.shape(spectrum)[1]):
             rheader = 'Radius(AU) {:9.4f}\n'.format(chem_disk.data['r'][0,j])
             zheader = 'z(AU)' + '{:10.4f}'*np.shape(spectrum)[0]
-            zheader_vals = self.data['z'][:,j]
+            zheader_vals = chem_disk.data['z'][:,j]
             zhead = zheader.format(*zheader_vals) + '\n'
             wavhead = 'Energy(keV)             Photons/cm2/s/keV \n'
             f.write(rheader)
@@ -761,9 +909,13 @@ def write_xray(chem_disk):
             f.write(wavhead)
             row = zip(wav_chem, [spectrum[:,j,-i] for i in range(np.shape(spectrum)[2])])
             for r in row:
+                if np.any(np.isnan(r[1])):
+                    print('xray file ERROR: nans found'.format(name))
+                    file_error += 1
                 f.write('{:7.2f}'.format(r[0]) + ('{:10.2e}'*np.shape(spectrum)[0]).format(*r[1]) + '\n')
+    return file_error
                 
-def write_chem_inputs(chem_disk):
+def write_chem_inputs(chem_disk,filepath=None):
     """ writes all the chem input files at once
     Parameters:
     -----------
@@ -772,13 +924,26 @@ def write_chem_inputs(chem_disk):
     """
     # set default file content
     model = chem_disk.input.m
-    write_environ(chem_disk)
+    file_error = 0
+    file_error += write_environ(chem_disk)
     for filename, contents in chem_disk.inpfiles.items():
-        contents_to_file(chem_disk,contents,filename)
+        contents_to_file(chem_disk,contents,filename,filepath=filepath)
         
-    write_uv(chem_disk)
+    file_error += write_uv(chem_disk,filepath=filepath)
     if model.rad['xray'] == True:
-        write_xray(chem_disk)
+        file_error += write_xray(chem_disk,filepath=filepath)
+    
+    if filepath is None:
+        filepath = chem_disk.rundir
+    if os.path.exists(filepath + 'disk_chemistry') != True:
+        exit = os.system('cp {} {}'.format(chem_disk.parentchemdir + '/disk_chemistry', filepath))
+        if exit != 0:
+            print('chemistry: ERROR copying disk_chemistry to:'.format(filepath))
+            file_error += 1
+    if file_error > 0:
+        print('WARNING: There are at least {} errors in the input that will cause problems if you try to run as is'.format(file_error))
+    else:
+        print('SUCCESS: ready to run the chemistry')
                 
 
 def plot_out(chem_disk,prop='rhog',log=True,method=contourf,**pk): 
@@ -847,7 +1012,7 @@ def plot_prechem(chem_disk,rlim=(400,400)):
     
     
     
-    from scipy.ndimage import gaussian_filter
+    #from scipy.ndimage import gaussian_filter
     smooth_T = chem_disk.input.calc_T2D('dust').T
     c2 = ax[0,2].contourf(X, Z, smooth_T,levels=np.linspace(5,125,19),cmap='twilight_shifted',extend='both')
 
@@ -860,7 +1025,7 @@ def plot_prechem(chem_disk,rlim=(400,400)):
     ax[1,2].set_title(r'Regridded $T_d$',fontsize=11)
     plot_out(chem_disk,prop='Td',cmap='twilight_shifted',levels=np.linspace(5,125,19),log=False,extend='both')
     
-    from scipy.ndimage import gaussian_filter
+    #from scipy.ndimage import gaussian_filter
     smooth_T = chem_disk.input.calc_T2D('gas').T
     c2 = ax[0,3].contourf(X, Z, smooth_T,levels=np.linspace(5,125,19),cmap='twilight_shifted',extend='both')
     ax[0,3].set_title(r'Original $T_g$',fontsize=11)

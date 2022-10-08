@@ -12,34 +12,15 @@ from sys import platform
 from . units import *
 from . outputs import *
 
-
-if platform == 'linux':
-    font_files = matplotlib.font_manager.findSystemFonts(fontpaths='/usr/share/fonts/', fontext='ttf')
-    for font_file in font_files:
-        try:
-            matplotlib.font_manager.fontManager.addfont(font_file)
-        except:
-            pass
-    #matplotlib.font_manager.FontProperties(fname='/home/akuznetsova/.local/share/fonts/Unknown Vendor/TrueType/Times/Times_Regular.ttc')
-else:
-    font_files = matplotlib.font_manager.findSystemFonts(fontpaths='/Users/aleksandra/Library/Fonts/',fontext='ttf')
-    #matplotlib.font_manager.FontProperties(fname='/Users/aleksandra/Library/Fonts/Lato-Regular.ttf')
-    for font_file in font_files:
-        matplotlib.font_manager.fontManager.addfont(font_file)
-
-
-
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 rc('text', usetex=False)
 #rc('mathtext', fontset = 'stixsans')
 rc('axes', linewidth = 1.25)
 
-rc('mathtext', **{'fontset':'custom', 'sf':'sans','default':'sf','fallback':'cm'})
-
-SMALL_SIZE = 10
-MEDIUM_SIZE = 11
-BIGGER_SIZE = 12
-BIGGEST_SIZE = 13
+SMALL_SIZE = 8
+MEDIUM_SIZE = 10
+BIGGER_SIZE = 11
+BIGGEST_SIZE = 12
 
 rc('font', size=SMALL_SIZE)          # controls default text sizes
 rc('axes', titlesize=BIGGER_SIZE)     # fontsize of the axes title
@@ -57,56 +38,61 @@ plkw3 = {'lw':1.5} # plot a thicker line
 plsty = {'base':plkw,'ann':plkw2,'line':plkw3} #basic line, basic annotation, basic line, no color specified.
 
 ##### plotting convenience functions #####
-def plot_slice(output,rho,log=True,average = True, **plot_params):
+def plot_slice(output,rho=None,log=True,average = True, **plot_params):
     model = output.m
     R_CYL,Z_CYL = model.make_rz()
-    if rho.ndim > R_CYL[:,:,0].ndim:
-        if average == True:
-            rho2d = np.average(rho,axis=-1) #azimuthal average 
+    if rho is not None:
+        if rho.ndim > R_CYL[:,:,0].ndim:
+            if average == True:
+                rho2d = np.average(rho,axis=-1) #azimuthal average 
+            else:
+                rho2d = rho[:,:,0]
         else:
-            rho2d = rho[:,:,0]
-    else:
-        rho2d = rho
-    if np.shape(rho2d) != np.shape(R_CYL[:,:,0]):
-        rho2d = rho2d.T
-    else:
-        rho2d = rho2d
-    ax = gca()
-    if log == True:
-        im=ax.contourf(R_CYL[:,:,0],Z_CYL[:,:,0], np.log10(rho2d),**plot_params)
-    else:
-        im=ax.contourf(R_CYL[:,:,0],Z_CYL[:,:,0], rho2d,**plot_params)
-    return im
+            rho2d = rho
+        if np.shape(rho2d) != np.shape(R_CYL[:,:,0]):
+            rho2d = rho2d.T
+        else:
+            rho2d = rho2d
+        ax = gca()
+        if log == True:
+            im=ax.contourf(R_CYL[:,:,0],Z_CYL[:,:,0], np.log10(rho2d),**plot_params)
+        else:
+            im=ax.contourf(R_CYL[:,:,0],Z_CYL[:,:,0], rho2d,**plot_params)
+        return im
 
-def plot_contour(output,rho,thresh,log=False,average=True,**plot_params):
+def plot_contour(output,rho=None,thresh=None,log=False,average=True,**plot_params):
     model = output.m
     R_CYL,Z_CYL = model.make_rz()
-    if rho.ndim > R_CYL[:,:,0].ndim:
-        if average == True:
-            rho2d = np.average(rho,axis=-1)
+    if rho is not None:
+        if rho.ndim > R_CYL[:,:,0].ndim:
+            if average == True:
+                rho2d = np.average(rho,axis=-1)
+            else:
+                rho2d = rho[:,:,0]
         else:
-            rho2d = rho[:,:,0]
-    else:
-        rho2d = rho
-    if np.shape(rho) != np.shape(R_CYL[:,:,0]):
-        rho2d = rho2d.T
-    else:
-        rho2d = rho2d
-    ax = gca()
-    if log == True:
-        cs = ax.contour(R_CYL[:,:,0],Z_CYL[:,:,0], np.log10(rho2d),**plot_params,levels=thresh)
-    else:
-        cs = ax.contour(R_CYL[:,:,0],Z_CYL[:,:,0], rho2d,**plot_params,levels=thresh)
-    ax.clabel(cs, cs.levels)
+            rho2d = rho
+        if np.shape(rho) != np.shape(R_CYL[:,:,0]):
+            rho2d = rho2d.T
+        else:
+            rho2d = rho2d
+        ax = gca()
+        if log == True:
+            cs = ax.contour(R_CYL[:,:,0],Z_CYL[:,:,0], np.log10(rho2d),**plot_params,levels=thresh)
+        else:
+            cs = ax.contour(R_CYL[:,:,0],Z_CYL[:,:,0], rho2d,**plot_params,levels=thresh)
+        ax.clabel(cs, cs.levels)
+        return cs
      
         
 def plot_components(output,fluid=0,rlim=400):
     model = output.m
-    f,ax= subplots(1,3,constrained_layout=True)
+    f,ax= subplots(1,3,constrained_layout=True,dpi=100)
     fluids = ['gas','small dust', 'large dust']
     f.suptitle(fluids[fluid],fontsize=11)
     f.set_size_inches(6,2)
     components = {'Disk': model.rho_disk(fluid=fluid),'Envelope': model.rho_embedded(fluid=fluid) - model.rho_disk(fluid=fluid), 'Disk + Envelope': model.rho_embedded(fluid=fluid)}
+    if fluid == 2:
+        components['Envelope'] = None
     for a,c in zip(ax, components.keys()):
         sca(a)
         im=plot_slice(output,rho=components[c],log=True,levels=np.arange(model.rhomin,model.rhomax,0.5))
@@ -146,7 +132,8 @@ def plot_components(output,fluid=0,rlim=400):
     
 def plot_velocities(output,rlim=400):
     model = output.m
-    f,ax= subplots(1,3,constrained_layout=True)
+    f,ax= subplots(1,3,constrained_layout=True,dpi=100)
+    f.set_size_inches(6,2)
     vectors = [r'$v_r$',r'$v_{\theta}$',r'$v_{\rm in}$']
     keys = ['r','theta','phi']
     f.set_size_inches(6,2)
@@ -183,7 +170,7 @@ def plot_dustRT(output,rlim=400): #convenience function to plot the dust radiati
     X,Z = model.make_rz()
     X = X[:,:,0]
     Z = Z[:,:,0]
-    f,ax = subplots(1,2,constrained_layout=True)
+    f,ax = subplots(1,2,constrained_layout=True,dpi=100)
     f.set_size_inches(6,4)
     if output.rho == {}:
         output.read_rho()
@@ -198,9 +185,8 @@ def plot_dustRT(output,rlim=400): #convenience function to plot the dust radiati
     ax[0].set_title('Input Model Dust Density',fontsize=11)
     cb = colorbar(c,ax=ax[0],location='bottom',aspect=10,ticks=np.array(c.levels[::2]).astype(int))
     cb.set_label(r'$\rho$ [$\mathrm{g/cm^{-3}}$]')
-    from scipy.ndimage import gaussian_filter
     
-    smooth_T = gaussian_filter(toplot_T ,sigma=[4,1.5])
+    smooth_T = toplot_T
     c2 = ax[1].contourf(X, Z, smooth_T,levels=np.linspace(5,125,19),cmap='twilight_shifted',extend='both')
     c3 = ax[1].contour(X, Z, smooth_T,levels=[10,20,30,60],colors='black',linewidths=1,linestyles=['solid','dashed','dashdot','dotted'])
     c4 = ax[0].contour(X, Z, smooth_T,levels=[10,20,30,60],colors='white',linewidths=1,linestyles=['solid','dashed','dashdot','dotted'])
@@ -247,7 +233,7 @@ def plot_flux_components(output,fname=''):
     
     fnu_tot = fnu_bb + fnu_uv + fnu_xray
     
-    f,ax= subplots(1,constrained_layout=True)
+    f,ax= subplots(1,constrained_layout=True,dpi=100)
     f.set_size_inches(6,3)
     
     ax.loglog(wav,fnu_bb*freq,label='Star',lw=2,color='navy')
@@ -272,7 +258,7 @@ def plot_shock_model(output):
     model=output.m
     colors=cm.get_cmap('twilight_r',20)
     thstart = np.radians(model.env['theta_min'])
-    f,ax = subplots(2,4,constrained_layout=True)
+    f,ax = subplots(2,4,constrained_layout=True,dpi=100)
     f.set_size_inches(6,5)
     Rc = model.env['Rc']
     Rd = model.disk['Rdisk'][0]
@@ -357,14 +343,9 @@ def plot_streams_polar(output,rlim=400):
     ylim(-rlim,rlim)
 
 
-def plot_kappa(output,filename='',header=False,**kwarg):
+def plot_kappa(output,fluid=1,filename='',**kwarg):
     model = output.m
-    kappa_file = '{}dustkappa_{}.inp'.format(model.outdir,filename)
-    if header == True:
-        numrows = 26
-    else:
-        numrows= 3
-    lam,kabs,kscat,g= np.loadtxt(kappa_file,skiprows=numrows,unpack=True)
+    lam,kabs,kscat,g= read_kappa(model,fluid=fluid,filename=filename)
     loglog(lam,kabs,lw=2,**kwarg,label=filename+ r': $\kappa_{abs}$')
     loglog(lam,kscat,lw=2,ls='--',**kwarg,label=filename + r': $\kappa_{sca}$',alpha=0.5)
     ax=gca()
@@ -373,17 +354,22 @@ def plot_kappa(output,filename='',header=False,**kwarg):
     ax.set_xlim(1.2e-4,1.2e4)
     ax.set_ylim(1e-4,)
     
-def plot_opacities(output,xray=False):
-    f,ax = subplots(1,constrained_layout=True)
+def plot_opacities(output,filenames = None,xray=False):
+    f,ax = subplots(1,constrained_layout=True,dpi=100)
     f.set_size_inches(6,3)
-    pops = {'dust-1':'teal','dust-2':'tomato'}
-    header=True
+    colors = ['teal','tomato','skyblue','goldenrod']
+    if filenames is not None:
+        pops = {}
+        for dust,c in zip(filenames,colors):
+            pops[dust] = c
+    else:
+        pops = {'dust-1':'teal','dust-2':'tomato'}  
     for dust in pops.keys():
         filename = dust
         if xray == True:
             filename = dust + 'x'
             header = False
-        plot_kappa(output,filename=filename,header=header,color=pops[dust])
+        plot_kappa(output,filename=filename,color=pops[dust])
     ax.set_title('Dust Population Opacities',fontsize=11)
     ax.legend()
     
@@ -426,13 +412,16 @@ def save_dustRT(output):
         f.savefig(pp,format='pdf')
 
     
-def plot_radiation_field(output,rlim=400, field='uv'):
+def plot_radiation_field(output,rlim=400, field='uv',levels=None):
     model = output.m
     if field not in output.J.keys():
         output.calc_Jint(field=field)
-    f,ax = subplots(1, constrained_layout=True)
+    f,ax = subplots(1, constrained_layout=True,dpi=100)
+    f.set_size_inches(3,2)
     sca(ax)
-    im = plot_slice(output,rho=np.average(output.J[field]['J_phot'],axis=-1),log=True,levels=np.linspace(1,12,12),cmap='BuPu_r')
+    if levels is None:
+        levels = np.linspace(1,12,12)
+    im = plot_slice(output,rho=np.average(4*pi*output.J[field]['J_phot'],axis=-1),log=True,levels=levels,cmap='BuPu_r')
     cb=colorbar(im,ax=ax)
     
     cb.set_label(r'$\log$ photons [$\mathrm{cm^{-2} \ s^{-1}}$]')

@@ -63,6 +63,9 @@ def write_wavelength(model,wav = None, fname=''):
     if wav is None:
         templates_dir = model.models_dir+'templates/'
         wav,freq = read_wavelength(fname=templates_dir+'wavelength_micron.inp')
+        if model.rad['xray'] == True:
+            xwav = np.logspace(np.log10(xray_min),np.log10(xray_max),20)
+            wav = np.append(xwav,wav[wav>xray_max])
     
     if fname == '':
         fname = model.outdir+ 'wavelength_micron.inp'
@@ -281,20 +284,20 @@ def write_opacities(model,ndust=2,filenames=['',''],update=True):
             print('{}: Dust opacity file not found in model directory'.format(kappa_file))
         elif os.path.exists(kappa_file) != True and fname == '':
             print('Running optool to generate new opacities')
-            run_optool(model,fluid=fluid,na=50)
+            run_optool(model,fluid=fluid,na=60)
             exts[str(fluid)] = 'dust-{}'.format(fluid)
     
         if update == True:
             print('Updating x-ray opacities')
             kappa_file = "{}dustkappa_dust-{}x.inp".format(model.outdir,fluid)
-            if os.path.exists(kappa_file) != True:
-                wav, kabs, kscat, g  = read_kappa(model,fluid=fluid,filename=fname)
-                wav, kabs_new = model_kappa_xray(model,wav=wav,fluid=fluid)
-                kabs[kabs_new !=0] = kabs_new[kabs_new!=0]
-                arrays = np.stack((wav,kabs,kscat,g),axis=-1)
-                nwav = len(wav)
-                header = '{} \n{} \n'.format(iformat,nwav)
-                np.savetxt(kappa_file,arrays,header=header,fmt='%12.6e',comments='',delimiter='\t')
+            #if os.path.exists(kappa_file) != True:
+            wav, kabs, kscat, g  = read_kappa(model,fluid=fluid,filename=fname)
+            wav, kabs_new = model_kappa_xray(model,wav=wav,fluid=fluid)
+            kabs[kabs_new > 0] = kabs_new[kabs_new > 0]
+            arrays = np.stack((wav,kabs,kscat,g),axis=-1)
+            nwav = len(wav)
+            header = '{} \n{} \n'.format(iformat,nwav)
+            np.savetxt(kappa_file,arrays,header=header,fmt='%12.6e',comments='',delimiter='\t')
             exts[str(fluid)] = 'dust-{}x'.format(fluid)
     print('updating dustopac.inp')      
     with open(model.outdir+ 'dustopac.inp','w') as f:

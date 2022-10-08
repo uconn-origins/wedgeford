@@ -22,6 +22,6 @@ keV = 1.602e-9 #ergs
 #wavelength threshholds for RT (in microns)
 uv_min = 0.093
 uv_max = 0.200
-xray_min= 1.2e-4
-xray_max= 1e-2
+xray_min= 6.2e-5 #20 keV in microns
+xray_max= 1e-2 
 lam_lya = 1.215670000e-01 #frequency of lyman alpha emission in microns

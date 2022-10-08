@@ -125,7 +125,7 @@ def calc_accretion_spectrum_xray(model,wav=None,accrate=None,fX=None):
     ------------
     model: model_ object class 
     
-    wav: wavelenghth in microns if None, wavelength is read in from the model's outdir
+    wav: wavelength in microns if None, wavelength is read in from the model's outdir
             otherwise, provided wavelengths are used for calculation
     
     accrate: accretion rate in Msun/yr, if None, uses model accretion rate
@@ -142,21 +142,25 @@ def calc_accretion_spectrum_xray(model,wav=None,accrate=None,fX=None):
     if accrate is None:
         accrate = model.star['accrate']
         
-    xmodel = model_acc_onto_star(model,wav=wav,accrate=accrate)
+    if model.star['xmodel'] is None:
+        model_acc_onto_star(model,wav=wav,accrate=accrate)
+    elif model.star['xmodel']['lam'] != wav:
+        model_acc_onto_star(model,wav=wav,accrate=accrate)
+    xmodel = model.star['xmodel']
     
     if fX is None:
-        fnu = xmodel['shock']['F'] + xmodel['cool']['F'] #otherwise will add up cooling and shock layer
+        fnu = xmodel['F']
     else:
-        wav, fnu = calc_powerlaw_xray(model,wav=wav,TX=xmodel['shock']['T'],fX=fX) #will scale hottest model component based on desired Xray flux fraction
+        wav, fnu = calc_powerlaw_xray(model,wav=wav,TX=xmodel['Tx'],fX=fX)
+    fnu[wav > xray_max] = 0.0
     return wav, fnu
 
 
 def model_acc_onto_star(model,wav=None,accrate=None):
     """ calculates the xray spectrum due to shocks from accretion onto the stellar surface
-    based on Calvet+Gullbring 1998/Brickhouse 2013
+    based on Calvet+Gullbring 1998/Brickhouse 2013 -- models emission from cooling layer
     
-    two component accretion shock model: shock surface + cooling layer
-    flux is bremmstrahlung power-law emission profile
+    flux is bremmstrahlung power-law emission profile from APEC calculations
     
     Parameters:
     ------------
@@ -181,35 +185,42 @@ def model_acc_onto_star(model,wav=None,accrate=None):
     f = model.star['f']
     Area = f*4.*pi*(model.star['Rs']*Rsun)**2
     Area_norm = 4.*pi*(pc**2)
-    vs = 3.1e7*np.sqrt(model.star['Ms']/(model.star['Rs']))*np.sqrt(4/5.)
+    Ri = 5 #magnetospheric truncation radius in units of stellar radii
+    # set to 5 from Calvet&Gullbring 1998
+    vs = 3.07e7*np.sqrt(model.star['Ms']/0.5)*np.sqrt(2.0/(model.star['Rs']))*np.sqrt(1.-(1./Ri))
     rhos = (accrate*Msun/yr)/(vs*Area)
-    Ts = 8.6e5*(model.star['Ms']/model.star['Rs'])
+    #Ts = 8.6e5*(model.star['Ms']/0.5)*(2.0/model.star['Rs'])
+    Ts = (3/16.) * (mu*mh/kb) * (vs**2)
     vps = vs*0.25
     rhops = rhos*4.0
-    Pram = 0.5*rhos*(vs**2)
-    C = (93*np.sqrt(3)-40*pi)*np.sqrt(mh**5/kb)*np.sqrt(2**5)/(2*(np.sqrt(2+0.25+1)))/1.64e-18
-    ds_cool = C*(vs**4)/(rhos)
-    rho_cool = Pram*(mu*mh)/(0.8*kb*model.star['Ts'])
-    v_cool = rhos*vs/rho_cool
-    T_cool = Ts*np.sqrt(v_cool/vps)
+    #C = ((93*np.sqrt(3)-40*pi)/10)*np.sqrt(mh**5/kb)*(np.sqrt(2**5)/(2*(np.sqrt(2+0.25+1))))/1.64e-19 # Eq 9 Feldmeier+1997
+    #based on radiative cooling for low density plasma in this regime
+    #ds_cool = C*(vps**4)/(rhops)
+    #from hartmann 2016
+    ds_cool = vps*6.7e3*(Ts**(1.5))/(rhops/(mu*mh))
+    def shock_cool(ds_cool, rho_ps, T_ps):
+        x = np.logspace(-2,0,10)
+        s = 1 - x
+        a = 0.87225
+        h = a * x**(2/7.) * ( 1. + ((1/a) - 1.) * x**(2/7.))
+        rho_cool = (1./h)*rho_ps
+        T_cool = ((1/3.) * h * ( 4. - h ))*T_ps
+        ds_x = np.abs(np.gradient(s))*ds_cool # for volume calculation
+        return ds_x, T_cool, rho_cool
     
-    def jff(rho,T,freq): #bremmstrahlung emission
-        gff = np.abs(np.sqrt(3)*np.log(kb * T/(h * freq))/pi)
-        n = rho/(mu*mh)
-        return 5.44e-39 * gff * (n**2)*np.sqrt(1./T)*exp(- h * freq/(kb*T))
+    #def jff(rho,T,freq): # optically thin bremmstrahlung emission
+        #gff = np.abs(np.sqrt(3)*np.log(kb * T/(h * freq))/pi)
+        #n = rho/(mu*mh)
+        #return 5.44e-39 * gff * (n**2)*np.sqrt(1./T)*exp(- h * freq/(kb*T))
+    ds_x_grid, T_cool_grid, rho_cool_grid = shock_cool(ds_cool, rhops, Ts)
+    F_grid = np.array([calc_ee_brems(freq,T_cool,rho_cool) * ds_x 
+              for T_cool, rho_cool,ds_x in zip(T_cool_grid,rho_cool_grid,ds_x_grid)])
+    F_total = np.sum(np.array(F_grid),axis=0)*Area/Area_norm
+    #F_1 = (jff(rhops,Ts,freq)*Area*ds_cool*0.5)/Area_norm
+    #F_2 = (jff(rho_cool,T_cool,freq)*Area*ds_cool*0.5)/Area_norm
     
-    F_1 = (jff(rhops,Ts,freq)*Area*ds_cool*0.5)/Area_norm
-    F_2 = (jff(rho_cool,T_cool,freq)*Area*ds_cool*0.5)/Area_norm
-    
-    nixray = (wav > xray_max)
-    F_1[nixray] = 0.0
-    F_2[nixray] = 0.0
-    
-    xmodel = {}
-    xmodel['shock'] = {'T': Ts,'rho':rhops,'ds':ds_cool/2.,'F':F_1,'lam':wav}
-    xmodel['cool'] = {'T':T_cool,'rho':rho_cool,'ds':ds_cool/2,'F':F_2,'lam':wav}
-    
-    return xmodel
+    xmodel = {'Tx': np.amax(T_cool_grid), 'F': F_total, 'ds': ds_cool, 'lam':wav}
+    model.star['xmodel'] = xmodel
     
 
 def model_Lya_line(model,wav=None,fLya=1e-2):
@@ -408,7 +419,9 @@ def calc_powerlaw_uv(model,wav = None, puv=1.1, LUV=None,flya=0.5): ### power-la
     return wav, uv_flux
 
 def calc_powerlaw_xray(model,wav=None,TX=10e6,fX=0.01): ### power-law X-ray emission
-    """ calculates a spectrum for an x-ray power-law emission profile
+    """ calculates a spectrum for an x-ray power-law emission profile, 
+    adapted from https://github.com/AtomDB/pyatomdb/blob/master/pyatomdb/pyatomdb/apec.py
+    
     Parameters:
     -----------
     model: model_ class object for parameters
@@ -440,3 +453,185 @@ def calc_powerlaw_xray(model,wav=None,TX=10e6,fX=0.01): ### power-law X-ray emis
     norm = (Fstar*fX)/(Ftot) # Flux in the X-ray is fX of total flux
     
     return wav, fnu_xray*norm
+
+
+def calc_ee_brems(freq, Te, rho):
+    """
+    calculate the electron-electron bremsstrahlung 
+    (taken straight from APEC models)
+    Parameters
+    ----------
+    freq : array (float)
+    frequencies in Hz
+    T : float
+    Electron temperature in K
+    rho : float
+    gas density (cm^-3)
+    Returns
+    -------
+    array(float)
+    ee_brems in photons cm^3 s^-1 keV-1 at each point E.
+    This should be multiplied by the bin width to get flux per bin.
+    References
+    ----------
+    Need to check this!
+    """
+    #
+    #  T is the electron temperature (in keV)
+    #  N is the electron density (in cm^-3)
+    #  E is the list of energies (in keV)
+    #
+    from scipy import integrate
+    
+    T = (kb*Te)/keV #electron temperature in keV
+    E = h*freq/keV # energy vals in keV
+    N = rho/(mu*mh) # electron number density
+    
+    aI1 = np.array([(3.15847E+0, -2.52430E+0, 4.04877E-1, 6.13466E-1, 6.28867E-1, 3.29441E-1),
+             (2.46819E-2, 1.03924E-1, 1.98935E-1, 2.18843E-1, 1.20482E-1, -4.82390E-2),
+             (-2.11118E-2, -8.53821E-2, -1.52444E-1, -1.45660E-1, -4.63705E-2, 8.16592E-2),
+             (1.24009E-2, 4.73623E-2, 7.51656E-2, 5.07201E-2, -2.25247E-2, -8.17151E-2),
+             (-5.41633E-3, -1.91406E-2, -2.58034E-2, -2.23048E-3, 5.07325E-2, 5.94414E-2),
+             (1.70070E-3, 5.39773E-3, 4.13361E-3, -1.14273E-2, -3.23280E-2, -2.19399E-2),
+             (-3.05111E-4, -7.26681E-4, 4.67015E-3, 1.24789E-2, -1.16976E-2, -1.13488E-2),
+             (-1.21721E-4, -7.47266E-4, -2.20675E-3, -2.74351E-3, -1.00402E-3, -2.38863E-3),
+             (1.77611E-4, 8.73517E-4, -2.67582E-3, -4.57871E-3, 2.96622E-2, 1.89850E-2),
+             (-2.05480E-5, -6.92284E-5, 2.95254E-5, -1.70374E-4, -5.43191E-4, 2.50978E-3),
+             (-3.58754E-5, -1.80305E-4, 1.40751E-3, 2.06757E-3, -1.23098E-2, -8.81767E-3)])
+
+    # column j=0-5; line i=0-10
+    aI2 = np.array([(-1.71486E-1, -3.68685E-1, -7.59200E-2, 1.60187E-1, 8.37729E-2),
+             (-1.20811E-1, -4.46133E-4, 8.88749E-2, 2.50320E-2, -1.28900E-2),
+             (9.87296E-2, -3.24743E-2, -8.82637E-2, -7.52221E-3, 1.99419E-2),
+             (-4.59297E-2, 5.05096E-2, 5.58818E-2, -9.11885E-3, -1.71348E-2),
+             (-2.11247E-2, -5.05387E-2, 9.20453E-3, 1.67321E-2, -3.47663E-3),
+             (1.76310E-2, 2.23352E-2, -4.59817E-3, -8.24286E-3, -3.90032E-4),
+             (6.31446E-2, 1.33830E-2, -8.54735E-2, -6.47349E-3, 3.72266E-2),
+             (-2.28987E-3, 7.79323E-3, 7.98332E-3, -3.80435E-3, -4.25035E-3),
+             (-8.84093E-2, -2.93629E-2, 1.02966E-1, 1.38957E-2, -4.22093E-2),
+             (4.45570E-3, -2.80083E-3, -5.68093E-3, 1.10618E-3, 2.33625E-3),
+             (3.46210E-2, 1.23727E-2, -4.04801E-2, -5.68689E-3, 1.66733E-2)])
+    # column j=6-10, line 0-10
+
+    # Region II (1 keV<=k_B<=300 keV)
+    abII = np.array([(-3.7369800E+1, -9.3647000E+0, 9.2170000E-1, -1.1628100E+1, -8.6991000E+0),
+              (3.8036590E+2, 9.5918600E+1, -1.3498800E+1, 1.2560660E+2, 6.3383000E+1),
+              (-1.4898014E+3, -3.9701720E+2, 7.6453900E+1, -5.3274890E+2, -1.2889390E+2),
+              (2.8614150E+3, 8.4293760E+2, -2.1783010E+2, 1.1423873E+3, -1.3503120E+2),
+              (-2.3263704E+3, -9.0730760E+2, 3.2097530E+2, -1.1568545E+3, 9.7758380E+2),
+              (-6.9161180E+2, 3.0688020E+2, -1.8806670E+2, 7.5010200E+1, -1.6499529E+3),
+              (2.8537893E+3, 2.9129830E+2, -8.2416100E+1, 9.9681140E+2, 1.2586812E+3),
+              (-2.0407952E+3, -2.9902530E+2, 1.6371910E+2, -8.8818950E+2, -4.0474610E+2),
+              (4.9259810E+2, 7.6346100E+1, -6.0024800E+1, 2.5013860E+2, 2.7335400E+1)])
+    # column a_0j-a2j, b0j,b1j; line j=0-8
+
+    cII = np.array([(-5.7752000E+0, 3.0558600E+1, -5.4327200E+1, 3.6262500E+1, -8.4082000E+0),
+             (4.6209700E+1, -2.4821770E+2, 4.5096760E+2, -3.1009720E+2, 7.4792500E+1),
+             (-1.6072800E+2, 8.7419640E+2, -1.6165987E+3, 1.1380531E+3, -2.8295400E+2),
+             (3.0500700E+2, -1.6769028E+3, 3.1481061E+3, -2.2608347E+3, 5.7639300E+2),
+             (-3.2954200E+2, 1.8288677E+3, -3.4783930E+3, 2.5419361E+3, -6.6193900E+2),
+             (1.9107700E+2, -1.0689366E+3, 2.0556693E+3, -1.5252058E+3, 4.0429300E+2),
+             (-4.6271800E+1, 2.6056560E+2, -5.0567890E+2, 3.8008520E+2, -1.0223300E+2)])
+    # column CII_2j-cII_6j; line j=0-6
+
+    # Region III (300 keV<= k_BT<=7 MeV)
+    abIII = np.array([(5.2163300E+1, 4.9713900E+1, 6.4751200E+1, -8.5862000E+0, 3.7643220E+2),
+               (-2.5703130E+2, -1.8977460E+2, -2.1389560E+2, 3.4134800E+1, -1.2233635E+3),
+               (4.4681610E+2, 2.7102980E+2, 1.7414320E+2, -1.1632870E+2, 6.2867870E+2),
+               (-2.9305850E+2, -2.6978070E+2, 1.3650880E+2, 2.9654510E+2, 2.2373946E+3),
+               (0.0000000E+0, 4.2048120E+2, -2.7148990E+2, -3.9342070E+2, -3.8288387E+3),
+               (7.7047400E+1, -5.7662470E+2, 8.9321000E+1, 2.3754970E+2, 2.1217933E+3),
+               (-2.3871800E+1, 4.3277900E+2, 5.8258400E+1, -3.0600000E+1, -5.5166700E+1),
+               (0.0000000E+0, -1.6053650E+2, -4.6080700E+1, -2.7617000E+1, -3.4943210E+2),
+               (1.9970000E-1, 2.3392500E+1, 8.7301000E+0, 8.8453000E+0, 9.2205900E+1)])
+    # column aII_0j-aIII_2j, bIII_0j, bIII_1j; line j=0-8
+    #print "E:",E
+    aI = np.hstack((aI1,aI2))
+
+    inum1 = np.arange(11)
+    jnum = np.resize(inum1,(11,11))
+    inum = np.transpose(jnum)
+    aII = np.zeros((9,3))
+    bII = np.zeros((9,2))
+    [aII, bII] = np.hsplit(abII,np.array([3]))
+
+    numII = np.arange(9)
+    aIIj = np.transpose(np.resize(numII,(3,9)))
+    aIIi = np.resize(np.arange(3),(9,3))
+    bIIj = np.transpose(np.resize(np.arange(9),(2,9)))
+    bIIi = np.resize(np.arange(2),(9,2))
+    cIIj = np.transpose(np.resize(np.arange(7),(5,7)))
+    cIIi = np.resize(np.arange(2,7),(7,5))
+
+    aIII = np.zeros((9,3))
+    bIII = np.zeros((9,2))
+
+    kTIII = 1.e3 #1 MeV, in unit of keV
+    [aIII, bIII] = np.hsplit(abIII,np.array([3]))
+
+
+    tao = T/510.0
+
+    #Earray, Eisvec =  util.make_vec(E)
+    Earray = np.array(E)
+    
+    x = Earray/T
+    numx=len(Earray)
+
+    GI = np.zeros((numx,))
+    AIIr = np.zeros((numx,))
+    BIIr = np.zeros((numx,))
+    GpwII = np.zeros((numx,))
+    GII = np.zeros((numx,))
+    FCCII = np.zeros((numx,))
+    Ei0 = np.zeros((numx,))
+    GpwIII = np.zeros((numx,))
+    
+    if T<0.05:
+        ret = np.zeros(len(x), dtype=float)
+    
+    elif 0.05<=T<70.:
+        # hmm
+        GI=np.zeros(len(x))
+        theta = (1/1.35) * ( np.log10(tao) + 2.65)
+        bigx = (1/2.5) * (np.log10(x) + 1.50)
+        for i in range(11):
+            for j in range(11):
+                GI += aI[i,j]*(theta**i)*(bigx**j)
+        GI *= np.sqrt(8/(3*np.pi))
+        ret = 1.455e-16*N**2*np.exp(-x)/(x*np.sqrt(tao))*GI
+    elif 70.<=T<300.:
+        taoII = tao
+        for k in range(numx):
+            def integrand(t):
+                return np.exp(-1.0*t)/t
+            [Ei0[k,],error] = scipy.integrate.quad(integrand,x[k,],\
+                                             np.Inf,args=())
+            AIIr[k,] = np.sum(aII*taoII**(aIIj/8.)*x[k,]**(aIIi))
+            BIIr[k,] = np.sum(bII*taoII**(bIIj/8.)*x[k,]**(bIIi))
+            FCCII[k,] = 1.+np.sum(cII*taoII**(cIIj/6.)*x[k,]**(cIIi/8.))
+            GpwII[k,] = np.sum(aII*taoII**(aIIj/8.)*x[k,]**(aIIi))-\
+                          np.exp(x[k,])*(-1.0)*Ei0[k,]*\
+                          np.sum(bII*taoII**(bIIj/8.)*x[k,]**(bIIi))
+            GII[k,] = GpwII[k,]*FCCII[k,]
+        ret = 1.455e-16*N**2*np.exp(-x)/(x*np.sqrt(taoII))*GII
+    elif 300.<=T<7000.:
+        taoIII = tao
+        for k in range(numx):
+            GpwIII[k,] = np.sum(aIII*taoIII**(aIIj/8.)*x[k,]**(aIIi))-\
+                       np.exp(x[k,])*(-1.0)*Ei0[k,]*\
+                       np.sum(bIII*taoIII**(bIIj/8.)*x[k,]**(bIIi))
+        ret = 1.455e-16*N**2*np.exp(-x)/\
+               (x*np.sqrt(taoIII))*GpwIII
+    else:
+        taoIV = tao
+        GIV = 3./(4.*np.pi*np.sqrt(taoIV))*\
+              (28./3.+2.*x+x**2/2.+2.*(8./3.+4.*x/3.+x**2)*\
+              (np.log(2.*taoIV)-0.57721)-np.exp(x) \
+              *(-1.0*Ei0)*(8./3.-4.*x/3.+x**2))
+
+        ret = 1.455e-16*N**2*np.exp(-x)/(x*np.sqrt(taoIV))*GIV
+    ph_keV = ret/150
+    #convert to ergs/cm^3/s/Hz
+    E_Hz = ph_keV * E*keV * (h/keV)
+    return E_Hz

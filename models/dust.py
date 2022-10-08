@@ -6,10 +6,34 @@ from scipy.interpolate import griddata
 
 from . units import *
 
+
 """
 Functions related to modifying dust optical properties
 
 """
+def read_wavelength(fname=None):
+    """Reads the wavelength grid
+
+    Parameters
+    ----------
+    fname : str, optional
+                    File name from which the spatial grid should be read. If omitted 'wavelength_micron.inp' will be used.
+    """
+    if fname is None:
+        fname = 'wavelength_micron.inp'
+        
+    if os.path.exists(fname) != True:
+        print('no wavelength file found at path:', fname, 'reading from template')
+        templates_dir = model.models_dir+'templates/'
+        fname = templates_dir +'wavelength_micron.inp'
+    
+    print('Reading ' + fname)
+    
+    data = np.fromfile(fname, count=-1, sep=" ", dtype=np.float64)
+    wav = data[1:]
+    freq = c / wav * 1e4
+    return wav, freq
+
 def run_optool(model, fluid=1,na=''):
     """ runs the command line options for optool from model inputs as a python script
     using Draine+03 grain compositions 
@@ -22,7 +46,7 @@ def run_optool(model, fluid=1,na=''):
     
     """
     lam_min = xray_min 
-    lam_max = 1.0e5 #longest wavelength
+    lam_max = 1.0e4 #longest wavelength
     nlam = 500
     amin = model.dust['amin'][fluid-1] #microns
     amax = model.dust['amax'][fluid-1] #microns
@@ -63,15 +87,15 @@ def model_kappa_xray(model,wav = None, fluid=1):
     loge,logk_g,logk_d = np.loadtxt(kappa_file)
     Ekev = 10**loge
     lam = 1e4*(h*c)/(Ekev*keV)
-    d2g = model.disk['Mfrac'][fluid-1]
+    d2g = model.env['d2g']
     if fluid < 2:
         kappa_gas = 10**(logk_g)*(1./(d2g)) #conversion to per grams of dust
-        k_g = np.interp(wav,lam,kappa_dust,right=0.0,left = 0.0)
+        k_g = np.interp(wav,lam[::-1],kappa_gas[::-1],right=0.0,left = 0.0)
     else:
         k_g = np.zeros_like(wav)
     kappa_dust = 10**(logk_d)*(1./(d2g)) #conversion to per grams of dust
     fb = calc_fb(model,fluid=fluid)
-    k_d = np.interp(wav,lam,kappa_dust*fb,right=0.0,left=0.0)
+    k_d = np.interp(wav,lam[::-1],(kappa_dust*fb)[::-1],right=0.0,left=0.0)
     k_d[wav> 0.001] = 0.0 #only for where optool sucks
     
     kappa_tot = k_g + k_d

@@ -3,7 +3,7 @@ import radmc3dPy as rpy
 import numpy as np
 import os
 from scipy.interpolate import griddata
-
+import pickle
 from . units import *
 from . write_radmc_files import *
 
@@ -236,19 +236,28 @@ class out: #Class that handles and stores the outputs and data for radmc3d after
     
     def calc_Jint(self,field='uv'):
         """ calculates the integrated mean intensity of the frequency dependent mean intensity field
+        output in two fields: 
+        'J_phot': the number of photons/cm^2/s
+        'e_phot': the average photon energy
+        
+        Multiplying the two gives you the mean intensity in ergs/cm^2/s
         Parameters
         ------------
         
         field: str, 'uv' or 'xray' for whatever field one wants to integrate 
+       
         
         """
         #read in the data
         wav, nu, Jnu = self.read_Jnu()
+        wav_hires, nu_hires = read_wavelength(self.m.outdir+'wavelength_micron.inp')
         model = self.m
         if field == 'uv' or field == 'UV':
             nu_index = np.where((wav < uv_max) & (wav > uv_min))
+            nu_index_hires = np.where((wav_hires < uv_max) & (wav_hires > uv_min))
         elif field == 'xray' or field == 'Xray':
             nu_index = np.where((wav < xray_max) & (wav > xray_min))
+            nu_index_hires = np.where((wav_hires < xray_max) & (wav_hires > xray_min))
             
         freq = nu[nu_index]
         wav = wav[nu_index]
@@ -256,20 +265,20 @@ class out: #Class that handles and stores the outputs and data for radmc3d after
         Jfreq = Jnu[:,:,:,nu_index]
         Jphot = Jnu[:,:,:,nu_index]/efreq
         
+        # calculate the relative error you get from summing over a limited number of wavelength points using the original input spectrum as a guide
         fnu0_1d = calc_input_spectrum(model,wav=wav)
-        fnu0_1d_hires = calc_input_spectrum(model,wav=self.wav)
+        fnu0_1d_hires = calc_input_spectrum(model,wav=wav_hires[nu_index_hires])
 
         f0_tot = np.trapz(fnu0_1d, x = freq)*-1.
-        f0_tot_hires = np.trapz(fnu0_1d_hires, x = self.freq)*-1.
-        
-        #minimum error estimate for flux integral by summation
+        f0_tot_hires = np.trapz(fnu0_1d_hires, x = nu_hires[nu_index_hires])*-1.
         err_sum = f0_tot/f0_tot_hires - 1.
         
-        J_e = np.trapz(Jfreq, x=np.expand_dims(freq,(0,1,2)),axis=-1)*-1
+        
+        J_e = np.trapz(Jfreq, x=np.expand_dims(freq,(0,1,2)),axis=-1)*-1 
         J_n = np.trapz(Jphot, x=np.expand_dims(freq,(0,1,2)),axis=-1)*-1
         
         self.J[field] = {}
-        self.J[field]['J_phot'] = J_n.squeeze()*(1.+ err_sum)
+        self.J[field]['J_phot'] = J_n.squeeze()*(1.+ err_sum) #apply the correction factor
         self.J[field]['e_phot'] = (J_e/J_n).squeeze()
    
         return True
@@ -395,7 +404,14 @@ class out: #Class that handles and stores the outputs and data for radmc3d after
         Z = R*np.cos(TH)
         return X,Z
         
-
+def update_model(output,**updated_params):
+    model = output.m
+    params = pickle.load( open( model.outdir+'pars.pkl', "rb" ))
+    for key in updated_params.keys():
+        if key in params.keys():
+            params[key] = updated_params[key]
+    pickle.dump(params,open(model.outdir + 'pars.pkl','wb'))
+    
 def overwrite_model(output,outdir=None):
     """ writes new .inp files for the current model parameters
     !! Note: this option will overwrite current .inp files in the directory !!
@@ -412,10 +428,14 @@ def overwrite_model(output,outdir=None):
             
     """
     model = output.m
-    model.print_params()
+    
+    set_params = {**model.star,**model.disk,**model.env,**model.grid,**model.dust,**model.rad}
     
     if outdir is not None:
         model.outdir = outdir
+    
+    update_model(output,**set_params)
+    model.print_params()
     
     write_grid(model)
     write_wavelength(model,wav=output.wav)
@@ -434,6 +454,8 @@ def overwrite_model(output,outdir=None):
         write_gas_temperature(model,Tgas=output.T['gas'])
         
     return 
+
+
 
 
 def prep_thermal_transfer(output,nphot=500000,mrw=1,maxtau=5):

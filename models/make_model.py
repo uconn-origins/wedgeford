@@ -43,7 +43,7 @@ class model_:
     """
     def __init__(self,params, outdir = '/m1_test/'):
         
-        stellar_params = {'Ms': 1, 'Rs': 2.0, 'Ts': 4000, 'accrate':1e-7,'f':0.01}
+        stellar_params = {'Ms': 1, 'Rs': 2.0, 'Ts': 4000, 'accrate':1e-7,'f':0.01,'xmodel':None}
         disk_params = {'Mdisk': 0.06, 'Mfrac': [0.01,0.01],'R0':[5,5], 'H0':[1,0.3], 'p':[-1,-1], 'Rdisk':[125,125],
                       'Tfac':1, 'q':0.5, 'hydro':[None,None,None]}
         envelope_params = {'Min': 1e-6, 'Rc':125, 'rho_amb':1e-25, 'rho_0': 3e-22,'theta_min': 25,'exf':0.25,'Rmax':1.5e4, 'd2g': 0.01, 'shock':False, 'nstreams': 1, 'stream_frac':1}
@@ -110,13 +110,9 @@ class model_:
     
     def print_params(self):
         """ prints parameter dictionaries belonging to model
+        Returns: re-packed dictionary of all parameters used in the model
         """
-        print('stellar_params:',self.star)
-        print('disk_params:',self.disk)
-        print('envelope_params:',self.env)
-        print('grid_params:',self.grid)
-        print('dust_params:',self.dust)
-        print('RT_params:',self.rad)
+        return {**self.star,**self.disk,**self.env,**self.grid,**self.dust,**self.rad}
     
     def T(self,R):
         """ calculates the temperature as a function of radial location away from the star
