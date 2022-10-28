@@ -37,4 +37,5 @@ C
 C  /BLK2/:
       INTEGER iwork
       REAL*8 rwork
+      
       COMMON /BLK2/ rwork(nspec*nss+721+32*nspec),iwork(30+5*nspec)

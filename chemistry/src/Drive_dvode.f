@@ -90,6 +90,12 @@ C Initial parameters:
 		tout = tfirst
         tstep= 1.0D+01**(dlog10(tlast/tfirst) / (nt-1.0d0))
 		grnfrac = 6e-12
+        
+C scale the absolute tolerance by the initial abundance of the zone
+        do k = 1, neq
+            atol(k) = MAX(atol(k)*yy(k), 1.0d-32)
+        end do
+     
 C Call DVODEPK:
       do i = 1, nt
 

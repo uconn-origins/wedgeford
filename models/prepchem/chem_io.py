@@ -50,8 +50,8 @@ class chemdisk:
         model = output.m
         chemdir = chemdir.strip('/')
         self.parentchemdir = '/'.join([self.input.m.parent_dir ,'chemistry'])
-        self.chemdir = '/'.join([self.parentchemdir ,'environ' , chemdir]) + '/'
         self.rundir = '/'.join([self.parentchemdir, 'runs' ,chemdir]) + '/'
+        self.chemdir = self.rundir + 'environ/'
         if os.getcwd() != self.input.m.outdir:
             os.chdir(self.input.m.outdir)
             
@@ -102,12 +102,12 @@ class chemdisk:
         self.set_6()
         
         try:
-            os.mkdir(self.chemdir)
+            os.mkdir(self.rundir)
         except:
-            print('environ directory exists - will overwrite current model if you write to it!')
+            print('run directory exists - will overwrite current model if you write to it!')
         
         try:
-            os.mkdir(self.rundir)
+            os.mkdir(self.chemdir)
         except:
             print('run directory exists !')
     
@@ -765,15 +765,15 @@ def write_0(chem_disk,fkwargs = {}):
     
     file_error = 0
     
-    with open(chem_disk.chemdir + '0io' + fkwargs['name'] + '.inp', 'w') as f:
+    with open(chem_disk.rundir + '0io' + fkwargs['name'] + '.inp', 'w') as f:
         f.write('# input & output files:\n')
-        f.write('rspecies_{}.dat \t # file with species\n'.format(fkwargs['species']))
-        f.write('rreacs_{}.dat \t # file with reactions\n'.format(fkwargs['reactions']))
-        f.write('uv_photons_{}.dat \t # file with uvfield\n'.format(mdir))
-        f.write('xray_photons_{}.dat \t # file with xrfield\n'.format(mdir))
-        f.write('None \t # file with ISRF \n') #already in outputs from uv/xray field
-        f.write('None \t # Radionuclide Ion Rate\n' ) #build this in later?
-        f.write('{} \t # initial 2D abundance file \n'.format(fkwargs['abund0'])) #default is None
+        f.write('rspecies_{}.dat  \n'.format(fkwargs['species']))
+        f.write('rreacs_{}.dat  \n'.format(fkwargs['reactions']))
+        f.write('uv_photons_{}.dat  \n'.format(mdir))
+        f.write('xray_photons_{}.dat \n'.format(mdir))
+        f.write('None  \n') #ISRF is already in outputs from uv/xray field
+        f.write('None  \n' ) #Radionucleide file
+        f.write('{}    \n'.format(fkwargs['abund0'])) #default is None
     
     for template_file in [template_reacs_file, template_species_file]:
         print('0inp: using {}'.format(template_reacs_file))
@@ -936,7 +936,7 @@ def write_chem_inputs(chem_disk,filepath=None):
     if filepath is None:
         filepath = chem_disk.rundir
     if os.path.exists(filepath + 'disk_chemistry') != True:
-        exit = os.system('cp {} {}'.format(chem_disk.parentchemdir + '/disk_chemistry', filepath))
+        exit = os.system('cp {} {}'.format(chem_disk.parentchemdir + '/src/disk_chemistry', filepath))
         if exit != 0:
             print('chemistry: ERROR copying disk_chemistry to:'.format(filepath))
             file_error += 1

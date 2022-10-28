@@ -96,6 +96,7 @@ C Common block (rates, abundances, etc.):
      4  ak(nreac),rtype(nreac),abundances(nspec,ntime),grspecs(nspec)
 
 
+
       COMMON /BL1/ ns, s, grspecs, nre, reacindex, ir1, ir2, ip1, ip2,
      1  ip3, ip4, ip5, r1, r2, p1, p2, p3, p4, p5, alpha, beta, gamma,
      2  ak, times, nJ, tprint, rtype, abundances, timestep

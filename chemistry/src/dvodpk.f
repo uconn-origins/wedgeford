@@ -1838,16 +1838,16 @@ C-----------------------------------------------------------------------
       NHNIL = NHNIL + 1
       IF (NHNIL .GT. MXHNIL) GO TO 290
       MSG = 'DVODPK-  Warning: internal T (=R1) and H (=R2) are'
-      CALL XERRWD (MSG, 50, 101, 1, 0, 0, 0, 0, ZERO, ZERO)
+c      CALL XERRWD (MSG, 50, 101, 1, 0, 0, 0, 0, ZERO, ZERO)
       MSG='      such that in the machine, T + H = T on the next step  '
-      CALL XERRWD (MSG, 60, 101, 1, 0, 0, 0, 0, ZERO, ZERO)
+c      CALL XERRWD (MSG, 60, 101, 1, 0, 0, 0, 0, ZERO, ZERO)
       MSG = '      (H = step size). solver will continue anyway'
-      CALL XERRWD (MSG, 50, 101, 1, 0, 0, 0, 2, TN, H)
+c      CALL XERRWD (MSG, 50, 101, 1, 0, 0, 0, 2, TN, H)
       IF (NHNIL .LT. MXHNIL) GO TO 290
       MSG = 'DVODPK-  Above warning has been issued I1 times.  '
-      CALL XERRWD (MSG, 50, 102, 1, 0, 0, 0, 0, ZERO, ZERO)
+c      CALL XERRWD (MSG, 50, 102, 1, 0, 0, 0, 0, ZERO, ZERO)
       MSG = '      it will not be issued again for this problem'
-      CALL XERRWD (MSG, 50, 102, 1, 1, MXHNIL, 0, 0, ZERO, ZERO)
+c      CALL XERRWD (MSG, 50, 102, 1, 1, MXHNIL, 0, 0, ZERO, ZERO)
  290  CONTINUE
 C-----------------------------------------------------------------------
 C  CALL DVSTEP (Y, YH, NYH, YH, EWT, SAVF, VSAV, ACOR, WM, IWM,
@@ -2904,7 +2904,7 @@ C           TN = current value of t.
 C
 C            Y = array containing current dependent variable vector.
 C
-C         SAVF = array containing current value of f(t,y).
+C         SAVF = array containing current value of f(t,y).EWT 
 C
 C            B = the right hand side of the system A*x = b.
 C

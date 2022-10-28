@@ -187,7 +187,7 @@ C External Functions
 
 C Local variable(s):
       DOUBLE PRECISION errval, lastyr
-      INTEGER i, j, l, nlen, nait, ipon, iana,
+      INTEGER i, j, k, l, nlen, nait, ipon, iana,
      1  iff, lx, is, li, lt, timedep, pos
       CHARACTER*5 ait, siend, eqlsign
       CHARACTER*160 line,testfi
@@ -221,12 +221,13 @@ C..............................................................................
         read (01,'(A50)') specs
         print *, specs
         read (01,'(A50)') rates
+        print *, rates
         read (01,'(A90)') uvfile
             uvfile = uvfile( :index(uvfile,'#')-1)
-C            print *, uvfile
+            print *, uvfile
         read (01,'(A90)') xrayfile
             xrayfile = xrayfile( :index(xrayfile,'#')-1)
-C            print *, xrayfile
+            print *, xrayfile
         read (01,'(A90)') isrffile
             isrffile = isrffile( :index(isrffile,'#')-1)
 C            print *, isrffile
@@ -282,37 +283,32 @@ C..............................................................................
 C..............................................................................
 C 4) Tolerance:
 C..............................................................................
-c       write(*,*) 'LIC here 0a'
-	   open (unit=01,file='4toleran.inp',status='old')
+	    open (unit=01,file='4toleran.inp',status='old')
         read (01,*)
         read (01,*) errval
 		do i=1,nspec
 			relerr(i) = errval
 		enddo
-
         read (01,*) errval
 		do i=1,nspec
 			abserr(i) = errval
 		enddo
-
 c       set species-specific tolerances
-		fend = 0
-		do while (fend .EQ. 0)
+        fend = 0
+        do while (fend .EQ. 0)
 			read(01,'(A160)',iostat=fend) line
-			if (line(1:1) .EQ. '#') cycle
-
-			read(line,*) flagname, errspec, errval
-			call ispecies(errspec, ns, s, errspecindex)
-			if (trim(flagname) .EQ. 'rel') then
-				relerr(errspecindex) = errval
+			if (line(1:1) .EQ. '#') cycle		
+                read(line,*) flagname, errspec, errval
+                call ispecies(errspec, ns, s, errspecindex)
+            if (trim(flagname) .EQ. 'rel') then
+				relerr(errspecindex) = errval   
 			else if (trim(flagname) .EQ. 'abs') then
 				abserr(errspecindex) = errval
 			else
-				write(*,*) 'Illegal value in 4toleran.inp'
+				print *, 'Illegal value in 4toleran.inp'
 				stop
 			endif
-		enddo
-
+        enddo
       close (01)
       print *, "read 4tol"
 
@@ -533,6 +529,7 @@ C Read in each zone's parameters
             ngr(i) = rho(i)*1e-2*0.75/(1.4*pi*1e-21)
         else
            read (01,*) Rs(i),rho(i),Tg(i),Td(i),zAU(i),zcm(i),Nrz(i),zetaCR(i),locdust(i)
+c            read (01,*) Rs(i),rho(i),Tg(i),Td(i),zAU(i),zcm(i),zetaCR(i),locdust(i)
               print *, 'Local dust fraction adjusted by: ',i,locdust(i)
               ngr(i)=rho(i)*1e19*0.75/(1.4*pi*locdust(i)*sqrt(locdust(i)))
         end if
@@ -695,19 +692,19 @@ C Convert zone number to string for input/output
 C Since Bethell's UV field is not acurate outside of a 400 x 400 AU box, set
 C abundances to 0 if we are outside of that box and skip running the
 C ODE solver there
+        gdens = rho(zone) / aMp / amu
+        print *, gdens
 		IF (zAU(zone) .GT. ZMAX .OR. Rs(zone) .GT. RMAX .or. Tg(zone).ge.1000.0) THEN
 			DO j=1,nspec
 				yy(j) = 0.0
 			ENDDO
 C Ignore cells with Temperature = 0 or Density = 0
-        ELSE IF (Tg(zone).EQ.0 .OR. Td(zone).EQ.0 .OR. rho(zone).LE. 1E-24) THEN
+        ELSE IF (Tg(zone).EQ.0 .OR. Td(zone).EQ.0 .OR. rho(zone).LE. 1E-25) THEN
 			DO j=1,nspec
 				yy(j) = 0.0
 			ENDDO
 C Run zone
 		ELSE
-C Total gas particle density:
-			gdens = rho(zone) / aMp / amu
 
 C Set initial abundances
 C If using 2D initial abundances read them in now
@@ -751,6 +748,7 @@ C Calculate the rate coefficients:
 c     &		r2(j),frc(12),timedep,dtaudtemp)
      &		r2(j),grnfrac,timedep,dtaudtemp,tfirst)
 			END DO
+            
 
 C Compute chemistry:
 			CALL run_chemistry(ns,tfirst,nstep,yy,tlast,relerr,abserr)

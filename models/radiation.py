@@ -144,7 +144,7 @@ def calc_accretion_spectrum_xray(model,wav=None,accrate=None,fX=None):
         
     if model.star['xmodel'] is None:
         model_acc_onto_star(model,wav=wav,accrate=accrate)
-    elif model.star['xmodel']['lam'] != wav:
+    elif np.shape(model.star['xmodel']['lam']) != np.shape(wav):
         model_acc_onto_star(model,wav=wav,accrate=accrate)
     xmodel = model.star['xmodel']
     

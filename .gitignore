@@ -16,3 +16,4 @@ out/**/*.dat
 chemistry/xsect/*.calc
 out/gmaur/kz_gma/**
 out/gmaur/GM_Aur_MAPS/**
+chemistry/src/*.o
