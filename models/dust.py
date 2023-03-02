@@ -34,7 +34,7 @@ def read_wavelength(fname=None):
     freq = c / wav * 1e4
     return wav, freq
 
-def run_optool(model, fluid=1,na=''):
+def run_optool(model, fluid=1,na='70'):
     """ runs the command line options for optool from model inputs as a python script
     using Draine+03 grain compositions 
     
@@ -122,16 +122,18 @@ def read_kappa(model,fluid=1,filename=''):
     else:
         kappa_file = '{}dustkappa_{}.inp'.format(model.outdir,filename)
     
-    with open(kappa_file, 'r') as f:
-        numrows = 0
-        for line in f:
-            if line.startswith('#'):
-                numrows +=1
-            else:
-                pass
-    numrows += 2
-    
-    wav,kabs,kscat,g = np.loadtxt(kappa_file,unpack=True,skiprows=numrows)
-    
-    return wav, kabs, kscat, g
+    if os.path.exists(kappa_file):
+        with open(kappa_file, 'r') as f:
+            numrows = 0
+            for line in f:
+                if line.startswith('#'):
+                    numrows +=1
+                else:
+                    pass
+        numrows += 2
+        wav,kabs,kscat,g = np.loadtxt(kappa_file,unpack=True,skiprows=numrows)
+        return wav, kabs, kscat, g
+    else:
+        print('Error: could not find dust opacity file:', kappa_file)
+        return None
 

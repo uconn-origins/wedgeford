@@ -21,7 +21,7 @@ The basic physical model is a disk and envelope component with two populations o
 
 There is the option to load in the density distribution of dust and gas from FARGO data ['models/import_fargo.py'](./models/import_fargo.py)
 
-Further details for how the physical model is generated can be found in [`models/models.py` ](./models/models.py)
+Further details for how the physical model is generated is in [`models/models.py` ](./models/models.py)
 
 ### Radiative Transfer
 Radiative transfer of thermal and high energy photons (UV + X-ray) is done with RADMC-3D. How the model interfaces with the RADMC-3D outputs can be found in ['models/outputs.py'](./models/outputs.py).
@@ -29,4 +29,9 @@ Models for setting the radiation sources is in ['models/radation.py'](./models/r
 
 Specific functions to write radmc files are in ['models/write_radmc_files.py'](./models/write_radmc_files.py).
 
- 
+
+### Plotting
+Some convenience plotting functions can be found in ['models/make_plots.py'](./models/make_plots.py).
+
+### Chemical Model
+The chemical model files are written based off of the radmc outputs and re-gridded for the chemical code. The setups for the chemistry run are based off of template values and parameters set during the model setup. The details of how this is performed are in ['models/prepchem/chem_io.py'](./models/prepchem/chem_io.py').

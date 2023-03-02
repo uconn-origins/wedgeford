@@ -76,6 +76,7 @@ def write_wavelength(model,wav = None, fname=''):
         wfile.write('%d\n' % nwav)
         for ilam in range(nwav):
             wfile.write('%.9e\n' % wav[ilam])
+    return 
     
 
 def write_grid(model):
@@ -101,6 +102,7 @@ def write_grid(model):
         for x,fmt  in zip([r_edges,th_edges,phi_edges],['%13.6e','%17.10e','%13.6e']):
             x.tofile(f, sep= '\t', format=fmt)
             f.write('\n')
+    return
             
             
 def write_dust_density(model,envelope=True,rhodust = None):
@@ -129,6 +131,7 @@ def write_dust_density(model,envelope=True,rhodust = None):
     print('writing dust_density.inp')
     fname = model.outdir + 'dust_density.inp'
     _scalarfieldWriter(model,data=rhodust.swapaxes(0,1), fname=fname)
+    return
     
 def write_gas_density(model,envelope=True,rhogas=None):
     """ writes the gas density in a gas_density.inp file g/cm^3
@@ -154,6 +157,7 @@ def write_gas_density(model,envelope=True,rhogas=None):
     print('writing gas_density.inp')
     fname = model.outdir + 'gas_density.inp'
     _scalarfieldWriter(model,data=rhogas, fname=fname)
+    return
     
 def write_star(model,wav=None,accrate=None,fnu=None):
     """ writes the stars.inp file for radmc3d
@@ -187,7 +191,11 @@ def write_star(model,wav=None,accrate=None,fnu=None):
     if fnu is None:
         fnu_tot = calc_input_spectrum(model,wav=wav)
     else:
-        fnut_tot = fnu
+        if len(fnu) == nwav:
+            fnut_tot = fnu
+        else:
+            print('Error: input spectrum does not match wavelength grid')
+            return None
             
     print('Writing stars.inp')
     with open(model.outdir + 'stars.inp', 'w') as wfile:
@@ -201,6 +209,7 @@ def write_star(model,wav=None,accrate=None,fnu=None):
         
         for ilam in range(nwav):
             wfile.write('%.9e\n' % (fnu_tot[ilam]))
+    return 0
     
 
 def write_external_radfield(model,wav=None,fnu=None):
@@ -218,11 +227,17 @@ def write_external_radfield(model,wav=None,fnu=None):
         wav, freq = read_wavelength(model.outdir+'wavelength_micron.inp')
     else:
         freq = c / wav * 1e4
-        
+    
+    nwav = len(wav)
+    
     if fnu is None:
         wav, fnu_field = calc_ISRF(model,wav=wav)
     else:
-        fnu_field = fnu
+        if len(fnu) == nwav:
+            fnut_field = fnu
+        else:
+            print('Error: input spectrum does not match wavelength grid')
+            return None
         
     print('writing external_source.inp')
     with open(model.outdir+'external_source.inp','w') as f:
@@ -233,6 +248,7 @@ def write_external_radfield(model,wav=None,fnu=None):
         f.write('\n')
         f.write('\n')
         fnu_field.tofile(f, sep='\n', format="%13.6e")
+    return 0
         
 
 def write_viscous_heatsource(model,accrate=None):
@@ -256,6 +272,7 @@ def write_viscous_heatsource(model,accrate=None):
             f.write('%d\n'%(Nr))             # Number of cells
             heat = D_disk.swapaxes(0,1).ravel(order='F')# radmc assumes 'ij' indexing for some reason Create a 1-D view, fortran-style indexing
             heat.tofile(f, sep='\n', format="%13.6e")
+    return
 
 def write_opacities(model,ndust=2,filenames=['',''],update=True):
     """ checks for the dust_kappa..inp files, runs optool calculation if not present to write new ones
@@ -281,7 +298,7 @@ def write_opacities(model,ndust=2,filenames=['',''],update=True):
             kappa_file = '{}dustkappa_{}.inp'.format(model.outdir,fname)
             exts[str(fluid)] = fname
         if os.path.exists(kappa_file) != True and fname != '':
-            print('{}: Dust opacity file not found in model directory'.format(kappa_file))
+            print('{}: user dust opacity file not found in model directory'.format(kappa_file))
         elif os.path.exists(kappa_file) != True and fname == '':
             print('Running optool to generate new opacities')
             run_optool(model,fluid=fluid,na=60)
