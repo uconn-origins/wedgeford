@@ -1,5 +1,5 @@
 from pylab import *
-import radmc3dPy as rpy
+#import radmc3dPy as rpy
 import numpy as np
 import os
 from scipy import interpolate
@@ -46,7 +46,7 @@ class model_:
         stellar_params = {'Ms': 1, 'Rs': 2.0, 'Ts': 4000, 'accrate':1e-7,'f':0.01,'xmodel':None}
         disk_params = {'Mdisk': 0.06, 'Mfrac': [0.01,0.01],'R0':[5,5], 'H0':[1,0.3], 'p':[-1,-1], 'Rdisk':[125,125],
                       'Tfac':1, 'q':0.5, 'hydro':[None,None,None]}
-        envelope_params = {'Min': 1e-6, 'Rc':125, 'rho_amb':1e-25, 'rho_0': 3e-22,'theta_min': 25,'exf':0.25,'Rmax':1.5e4, 'd2g': 0.01, 'shock':False, 'nstreams': 1, 'stream_frac':1}
+        envelope_params = {'Min': 1e-6, 'Rc':125, 'rho_amb':2e-25, 'rho_0': 6e-22,'theta_min': 25,'exf':0.25,'Rmax':1.5e4, 'd2g': 0.01, 'shock':False, 'nstreams': 1, 'stream_frac':1}
         grid_params = {'N':[180,90,48], 'min':[0.1,pi/16.,0], 'max':[400,pi/2.,2*pi], 'spacing':['log','lin','lin']}
         dust_params = {'rho_si':3.1518, 'amin_chem':0.06, 'amax_ism': 1.0, 'amin': [0.005,0.005], 'amax': [1,1e3], 'apow': [3.5,3.5]}
         RT_params = {'cr_model': 'ssx','zetacr': 1.3e-17, 'G0':1, 'viscous_heating':True, 'fLya': 1e-4, 'xray':True}

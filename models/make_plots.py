@@ -1,5 +1,5 @@
 from pylab import *
-import radmc3dPy as rpy
+#import radmc3dPy as rpy
 import numpy as np
 import os
 from scipy.interpolate import griddata
@@ -128,8 +128,17 @@ def plot_components(output,fluid=0,rlim=400):
     colorbar(im,ax=ax,label=r'$\rho \ \mathrm{[g \ cm^{-3}]}$')
     ax[1].set_xlabel('R [au]')
     ax[0].set_ylabel('z [au]')
-    
-    
+
+
+
+def plot_midplaneT(output):
+    Tdust_1 = output.T['dust']
+    Tdust2D_1 = output.calc_T2D(fluid='dust')
+    Tdust_mid_r_1 = np.average(Tdust2D_1[:,-10:],axis=-1)
+    f, ax = subplots(1)
+    ax.loglog(output.r, Tdust_mid_r_1)
+
+
 def plot_velocities(output,rlim=400):
     model = output.m
     f,ax= subplots(1,3,constrained_layout=True,dpi=100)
@@ -478,5 +487,4 @@ def save_heRT(output):
         plot_opacities(output,xray=output.m.rad['xray'])
         f = gcf()
         f.savefig(pp,format='pdf')
-        
         

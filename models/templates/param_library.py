@@ -11,3 +11,6 @@ library['classII_disk'] = {'Ms': 0.5, 'Rs': 2.0, 'Ts': 4000.0, 'accrate': 1e-08,
 
 
 library['gma'] = {'Ms': 1.1, 'Rs': 1.9, 'Ts': 4350, 'accrate':8e-9,'f':0.01, 'Mdisk': 0.2, 'Mfrac': [0.0005,0.003],'R0':[1,1], 'H0':[1,0.2], 'p':[-1,-1], 'Rdisk':[175,175],'Min': 1e-6, 'Rc':90, 'rho_amb':1e-36, 'rho_0': 3e-22,'theta_min': 25,'exf':0.25,'Rmax':1.5e4, 'd2g': 0.01, 'shock':False,'N':[300,180,90], 'min':[1,0.7854,0], 'max':[650,pi/2.,2*pi], 'spacing':['log','lin','lin'],'rho_si':1.675, 'amin_chem':0.06, 'amax_ism': 1.0, 'amin': [0.005,0.005], 'amax': [1,1e3], 'apow': [3.5,3.5],'cr_model': 'ssx','zetacr': 1.3e-17, 'LX': 1e30, 'G0':0, 'viscous_heating':False, 'stream_frac':0.75, 'nstreams':6}
+
+
+library['fiducial'] = {'Ms': .2, 'Rs': 3.0, 'Ts': 3485, 'accrate':8.5e-9,'f':0.01, 'Mdisk': 0.2, 'Mfrac': [0.0005,0.003],'R0':[1,1], 'H0':[1,0.2], 'p':[-1,-1], 'Rdisk':[175,175],'Min': 1e-6, 'Rc':90, 'rho_amb':1e-36, 'rho_0': 3e-22,'theta_min': 25,'exf':0.25,'Rmax':1.5e4, 'd2g': 0.01, 'shock':False,'N':[300,180,90], 'min':[1,0.7854,0], 'max':[650,pi/2.,2*pi], 'spacing':['log','lin','lin'],'rho_si':1.675, 'amin_chem':0.06, 'amax_ism': 1.0, 'amin': [0.005,0.005], 'amax': [1,1e3], 'apow': [3.5,3.5],'cr_model': 'ssx','zetacr': 1.3e-17, 'LX': 1e30, 'G0':0, 'viscous_heating':False, 'stream_frac':0.75, 'nstreams':6}

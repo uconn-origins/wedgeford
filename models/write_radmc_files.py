@@ -1,5 +1,5 @@
 from pylab import *
-import radmc3dPy as rpy
+#import radmc3dPy as rpy
 import numpy as np
 import os
 from scipy.interpolate import griddata
@@ -329,7 +329,7 @@ def write_opacities(model,ndust=2,filenames=['',''],update=True):
             
 ##################################################################################            
             
-def write_main(model,nphot= 100000,scat=2,mrw =1,maxtau=15,teq=1,dust=1,lines=0,coup=0):   
+def write_main(model,nphot= 1000000,scat=2,mrw =1,maxtau=15,teq=1,dust=1,lines=0,coup=0):   
     """ writes radmc3d.inp file with desired parameters
     Parameters
     ----------

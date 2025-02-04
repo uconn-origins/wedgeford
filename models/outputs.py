@@ -1,5 +1,5 @@
 from pylab import *
-import radmc3dPy as rpy
+#import radmc3dPy as rpy
 import numpy as np
 import os
 from scipy.interpolate import griddata
@@ -514,7 +514,7 @@ def check_spatial_files(output,fname_dens=None,ndim=4):
     if fname_dens is None:
         fname_dens = model.outdir + 'dust_density.inp'
     data = np.fromfile(fname_grid, count=-1, sep=" ", dtype=np.float64)
-    hdr = np.array(data[:10], dtype=np.int)
+    hdr = np.array(data[:10], dtype= int)
     data = data[10:]
 
     # Check the file format
