@@ -463,7 +463,7 @@ def write_molecule_density(model,names=['co'],abundances=[1e-4]):
             molecule = shock_tracers[name]
         else:
             molecule = name
-        if X.ndim > 1:
+        if np.array(X).ndim > 1:
             molecule_field = X #custom molecule field instead
         else:
             molecule_field = (model.rho_embedded(fluid=0)/(mu*mh)) * X
