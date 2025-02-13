@@ -34,7 +34,7 @@ def read_wavelength(fname=None):
     freq = c / wav * 1e4
     return wav, freq
 
-def run_optool(model, fluid=1,na='70'):
+def run_optool(model, fluid=1,na='100'):
     """ runs the command line options for optool from model inputs as a python script
     using Draine+03 grain compositions 
     
