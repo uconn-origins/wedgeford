@@ -26,7 +26,7 @@ library['TW_Hya'] = {'Ms': 0.8, 'Rs': 1.11, 'Ts': 4000.0, 'accrate': 2.5e-9, 'f'
                     'cr_model': 'ssx', 'zetacr': 1.3e-17, 'LX': 1e+30, 'G0': 1, 'viscous_heating': False}
 
 library['HL_Tau'] = {'Ms': 1.7, 'Rs': 7.0, 'Ts': 4000.0, 'accrate': 1.67e-7, 'f': 0.01, 
-                    'Mdisk': 0.1, 'Mfrac': [0.002, 0.008], 'R0': [0.1, 0.1], 'H0': [1, 0.2], 'p': [-1, -1], 'Rdisk': [60, 60], 
+                    'Mdisk': 0.2, 'Mfrac': [0.002, 0.008], 'R0': [0.1, 0.1], 'H0': [1, 0.2], 'p': [-1, -1], 'Rdisk': [60, 60], 
                     'Min': 1e-6, 'Rc': 65, 'rho_amb': 1e-25, 'theta_min': 20, 'shock': False, 'N': [160, 90, 48],
                     'min': [0.1, 0.25, 0], 'max': [200, 1.5707963267948966, 6.283185307179586],
                     'spacing': ['log', 'lin', 'lin'], 'rho_si': 3.1518, 'amin_chem': 0.06, 'amax_ism': 1.0,
