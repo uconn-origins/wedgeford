@@ -1,5 +1,5 @@
 from pylab import *
-import radmc3dPy as rpy
+#import radmc3dPy as rpy
 import numpy as np
 import os
 from models.units import *
