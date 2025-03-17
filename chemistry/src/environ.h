@@ -42,7 +42,7 @@ C CRatten(Nz) == Cosmic Ray attenuation factor
 C
 C totflux(Nz) == integrated flux [photons / cm^2 / s]
 C
-C nxray_photons(Nz) == # x-ray photons, from Tom Bethell scattering calculationg [photons]
+C nxray_photons(Nz) == # x-ray photons, from Tom Bethell scattering calculation [photons]
 C
 C xrayrate(Nz) == xray ionization rate at each zone
 C..............................................................................
@@ -53,24 +53,27 @@ C Global parameter(s):
 
 C Common block 2 (input parameters)
 	  INTEGER Nr, Nz, zone, UVmaxzone
-      DOUBLE PRECISION Rs, Tg, Td, ZetaCR, rho, ngr
+      INTEGER isavzone
+      DOUBLE PRECISION Rs, Tg, Td, ZetaCR, rho, ngr, Nrz
 	  DOUBLE PRECISION uvfield, xrayfield, lambda
 	  DOUBLE PRECISION zAU, zcm, CRatten, totflux, ndust
 	  DOUBLE PRECISION xraylevels, xrayrate, xrayratesimon
 	  DOUBLE PRECISION isrffield, RNatten, RNrate,locdust
+      DOUBLE PRECISION rsavzone
 	  CHARACTER*10 dust, tmpdust
 	  LOGICAL firstzone,xraydust,incl_radionuc,incl_isrf,incl_2dabun
 	  LOGICAL write_2dabun, incl_locdust
-	  DIMENSION Rs(nzone), Tg(nzone), Td(nzone), ZetaCR(nzone),
+      LOGICAL runzone
+	  DIMENSION isavzone(nzone,100), Rs(nzone), Tg(nzone), Td(nzone), ZetaCR(nzone),
      1 rho(nzone), ngr(nzone), Nrz(nzone), uvfield(nheight,nwavl),
      2 xrayfield(nheight,nwavl), lambda(nwavl), zAU(nzone),
      3 zcm(nzone), CRatten(nzone), totflux(nzone),
      4 UVmaxzone(nwavl), xraylevels(nwavl), xrayrate(nzone),
      5 xrayratesimon(nzone), isrffield(nheight,nwavl),
-     6 RNatten(nzone,2), RNrate(nzone), locdust(nzone)
+     6 RNatten(nzone,2), RNrate(nzone), locdust(nzone), rsavzone(nzone,100), runzone(nzone)
 
-	  COMMON /BL2/ uvfield, xrayfield, Nr, Nz, UVmaxzone, Rs, Tg,
-     1  Td, ZetaCR, rho, ngr, Nrz, zAU, zcm, lambda, CRatten, totflux,
+	  COMMON /BL2/ uvfield, xrayfield, Nr, Nz, UVmaxzone, isavzone, Rs, Tg,
+     1  Td, ZetaCR, rho, ngr, zAU, zcm, lambda, CRatten, totflux,
      2  xraylevels, xrayrate, ndust, zone, firstzone, xraydust,
-     3  dust, tmpdust, xrayratesimon, isrffield, RNatten, RNrate,
-     4  incl_radionuc,incl_isrf,incl_2dabun
+     3  dust, tmpdust, xrayratesimon, isrffield, RNatten, RNrate, rsavzone,
+     4  incl_radionuc,incl_isrf,incl_2dabun, runzone

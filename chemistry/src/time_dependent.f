@@ -951,10 +951,6 @@ c Column density in current zone:
 		lnh2 = dlog10(colden_h2_tot_18(timestep))
 	end if
 
-C  Temporary testing to find C18O self-shielding factor:
-	lnc18o = dlog10((10**lnco)/500.0)
-c	write(*,*) 'lnc18o: ',lnco,lnc18o,lnh2,k_Av0
-
 	if (iso .eq. 38) then
 		colden_13c18o = nCO * (zcm(zone) - zcm(zone-1))
 		if (nCO .LE. 0.0) colden_13c18o = 1.0e4

@@ -315,7 +315,7 @@ c Use the first radius
 	write(radstring, '(f7.3)') radius
 
 c	preadd = '/Nirgal1/fogel/astrochem/semenov/xsect/'
-	preadd = 'xsect/'
+	preadd = '../../xsect/'
 	add = '.photoxs'
 	add2 = '.'//trim(dust)//'.calc'
 

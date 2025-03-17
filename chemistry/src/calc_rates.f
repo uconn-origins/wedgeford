@@ -743,7 +743,8 @@ C     beta == 0.0 appears never to be used.
 		if ((r1 == 'D(gr)        ').and.(Td(zone).ge.physlim)) bind1 = chemtemp
 
 	 	IF (beta.EQ.0) THEN
-			calcrate = (alpha + beta * Td(zone) ** (-1 * gamma))*(zetaCR(zone)/1.3D-17)
+			calcrate = (alpha + beta * Td(zone) ** (-1 * gamma))*
+     &                          (zetaCR(zone)/1.3D-17)
 		ELSE
 			nu0 = ((2.0 * gamma * kbol * bind1)/(pi*pi*mH*beta))**0.5
 			calcrate = nu0 * frac * dexp(-bind1 / Tcr)*(zetaCR(zone)/9.7D-18)
@@ -770,7 +771,7 @@ C         ->  Beta is the 26 Al abundance.
 C 49) X-ray ionization of Helium (r2 = XRAY):
 	ELSE IF (rtype.EQ.49) THEN
 		calcrate = xrayionHe_rate()
-		print *, 'He X-ray ionization rate at zone ', zone, ': ', calcrate
+C		print *, 'He X-ray ionization rate at zone ', zone, ': ', calcrate
 		if (calcrate .lt. 1e-29) calcrate = 0.0
 
 C 50) Reactions with ortho/para dependent pathways.  H2D+ and CH2D+ are supported.
@@ -836,7 +837,7 @@ C  Based on Roeuff 2013, only considering the o/p of H2:
 
             calcrate = alpha*dexp(-beta/Tg(zone))*fro
         else
-            print *, 'No ortho/para information provided.'
+C            print *, 'No ortho/para information provided.'
             stop
         end if
 
@@ -938,7 +939,7 @@ c        write(*,*) 'colden1: ',colden1(i),'colden2: ',colden2(i)
 		CRatten(i) = 0.5 * (exp(-1 * colden1(i)/sigmaCR) +
      &				 exp(-1 * colden2(i)/sigmaCR))
 
-c		print *, 'CR Atten for zone ',i,' = ', CRatten(i)
+C		print *, 'CR Atten for zone ',i,' = ', CRatten(i)
 	END DO
 
 	RETURN
@@ -982,7 +983,7 @@ c        write(*,*) 'colden1: ',colden1(i),'colden2: ',colden2(i)
 		RNatten(i,1) = colden1(i)
 		RNatten(i,2) = colden2(i)
 
-c		print *, 'CR Atten for zone ',i,' = ', CRatten(i)
+C		print *, 'CR Atten for zone ',i,' = ', CRatten(i)
 	END DO
 
 	RETURN
@@ -2251,7 +2252,7 @@ c	          [H,C,O,N,S,D,Y,Z]
 	          END SELECT
 		 end select
 		 if (sum(atomarr) .eq. 0.0) then
-			write(*,*) 'Could not compute mass of ice species: ',molstring,'stopping.'
+			write(*,*) 'Could not compute mass of ice species: ',molstring,'.'
 			stop
 		 endif
 

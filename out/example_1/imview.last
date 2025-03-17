@@ -1,0 +1,6 @@
+raster  = 'c18o_example.fits'
+contour = {}
+zoom    = 1
+axes    = {}
+out     = ''
+#imview( raster='c18o_example.fits',contour={},zoom=1,axes={},out='' )

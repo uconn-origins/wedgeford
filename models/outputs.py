@@ -10,32 +10,32 @@ from . write_radmc_files import *
 
 
 class out: #Class that handles and stores the outputs and data for radmc3d after you've made the initial model structure
-    """ 
+    """
     Attributes
     --------------
     m : wedgeford object model class see: models/make_model.py
-    
+
     r : 1-d array, radial coordinate  in au
-    
+
     theta : 1-d array, polar coordinate
-    
+
     phi : 1-d array, azimuthal coordinate
 
     rho   : dictionary
-            densities in g/cm^3 
+            densities in g/cm^3
             keys: 'dust'+nspec, 'gas'
     T : dictionary
             temperatures in K
             keys: 'dust', 'gas', 'shock', 'UV'
-            
+
     J: nested dictionary
           field = 'xray' or 'uv'
           stores dictionary:
               'J_phot' : ndarray of integrated mean intensity in nphotons/cm^2/s
               'e_phot' : mean energy of photons in integrated wavelength range
-              
+
     wav, freq: wavelengths in microns, frequencies in hertz in local wavelength_micron.inp file
-                
+
     """
     def __init__(self,model):
         if os.getcwd() != model.outdir:
@@ -46,10 +46,10 @@ class out: #Class that handles and stores the outputs and data for radmc3d after
         self.phi = model.phi
         # dictionaries for storing component quantities
         self.rho = {}
-        self.T = {} 
+        self.T = {}
         self.J = {}
         self.wav, self.freq = read_wavelength(model.outdir+'wavelength_micron.inp')
-    
+
     def _fieldReader(self, fname='', ndim=3, nheader = None):
         """Reads a scalar field from file.
 
@@ -61,10 +61,10 @@ class out: #Class that handles and stores the outputs and data for radmc3d after
 
         ndim   : int
                 Number of dimension of the data field (3 for gas variables, 4 for dust)
-                
+
         nheader : optional
                 specify the header length in lines for files with alternate header lengths
-                
+
         Returns
         -------
 
@@ -107,12 +107,12 @@ class out: #Class that handles and stores the outputs and data for radmc3d after
                 msg = 'Internal inconsistency in data file, number of cell entries is different from ' \
                                   'indicated in the file header'
                 raise ValueError(msg)
-                        
+
         data = np.swapaxes(data, 0, 3)
         data = np.swapaxes(data, 1, 2)
         return data
-    
-    
+
+
     def read_rho(self):
         """Reads the density of components, stores the 3D quantity in self.rho keyed by the component name
 
@@ -122,7 +122,7 @@ class out: #Class that handles and stores the outputs and data for radmc3d after
         fname   : str, optional
                   Name of the file that contains the dust density. If omitted 'dust_density.inp' is used
                   (or if binary=True the 'dust_density.binp' is used).
-                  
+
         """
         model = self.m
         fname_dust = model.outdir+'dust_density.inp'
@@ -133,78 +133,78 @@ class out: #Class that handles and stores the outputs and data for radmc3d after
         self.ndust = np.shape(rhodust[0,0,0,:])[-1]
         for n in range(self.ndust):
             self.rho['dust' + str(n+1)] = rhodust[:,:,:,n]
-        
+
         if os.path.exists(fname_gas):
             print('Reading '+fname_gas)
             rhogas = self._fieldReader(fname=fname_gas,ndim=3)
             self.rho['gas'] = rhogas.squeeze()
         else:
             self.rho['gas'] = model.rho_embedded(fluid=0).swapaxes(0,1)
-            
+
         return True
-    
+
     def calc_rho2D(self,fluid='dust'):
         """ calculates 2D azimuthal average of the requested component
-        
+
         Parameters
         -----------
-        
+
         fluid: str, model component requested
                'dust' : total dust density
                'dust' + str(number) :  dust density of dust population number 1, 2, ...
                'gas' : the gas density
-        
+
         Returns: 2D numpy array averaged along the azimuth
-        
+
         """
-        
+
         # read in the data if it hasn't been already
         if self.rho == {} :
             self.read_rho()
 
-        
+
         if fluid == 'dust':
             rho_tot = np.zeros_like(self.rho['gas'])
             for n in range(self.ndust):
                 rho_tot += self.rho['dust' + str(n+1)]
         else:
             rho_tot = self.rho[fluid]
-            
-        return np.average(rho_tot,axis=-1)
-    
 
-            
+        return np.average(rho_tot,axis=-1)
+
+
+
     def read_Tdust(self):
         """Reads the temperature of components, stores the 3D quantity in self.T keyed by 'dust'
-        
+
         """
         model = self.m
         fname = model.outdir + 'dust_temperature.dat'
 
         print('Reading '+fname)
         Tdust = self._fieldReader(fname=fname, ndim=4)
-        
+
         #averages dust temperature across all dust populations
         self.T['dust'] = np.average(Tdust,axis=-1)
 
         return np.average(Tdust,axis=-1)
-    
-    
+
+
     def calc_T2D(self,fluid='dust'):
         """ calculates 2D azimuthal average of the requested component
-        
+
         Parameters
         -----------
-        
+
         fluid: str, model component requested
                'dust' : total dust density
                'gas' : the gas density
-        
+
         Returns: 2D numpy array averaged along the azimuth
-        
+
         """
         # read in the data if it hasn't been already
-        
+
         if fluid not in self.T.keys():
             if fluid == 'dust':
                 self.read_Tdust()
@@ -212,35 +212,35 @@ class out: #Class that handles and stores the outputs and data for radmc3d after
                 self.calc_Tgas(ndim=3)
             if fluid == 'shock':
                 self.model_Tshock()
-        
+
         T_tot = self.T[fluid]
-            
+
         return np.average(T_tot,axis=-1)
-    
-        
+
+
     def read_Jnu(self):
-        """Reads the mean intensity.out file 
+        """Reads the mean intensity.out file
         Returns: arrays of wavelengths in microns, frequencies in Hz, and 4 dimensional ndarray of the mean intensity at each frequency
-        
+
         """
         model = self.m
-       
+
         fname = model.outdir + 'mcmono_wavelength_micron.inp'
         wav,nu = read_wavelength(fname=fname)
-        
+
         print('Reading '+fname)
         fname = model.outdir + 'mean_intensity.out'
         Jnu = self._fieldReader(fname=fname, ndim=4)
-        
+
         return wav, nu, Jnu
-    
+
     def calc_Jint(self,field='uv'):
         """ calculates the integrated mean intensity of the frequency dependent mean intensity field
         Parameters
         ------------
-        
-        field: str, 'uv' or 'xray' for whatever field one wants to integrate 
-        
+
+        field: str, 'uv' or 'xray' for whatever field one wants to integrate
+
         """
         #read in the data
         wav, nu, Jnu = self.read_Jnu()
@@ -249,53 +249,53 @@ class out: #Class that handles and stores the outputs and data for radmc3d after
             nu_index = np.where((wav < uv_max) & (wav > uv_min))
         elif field == 'xray' or field == 'Xray':
             nu_index = np.where((wav < xray_max) & (wav > xray_min))
-            
+
         freq = nu[nu_index]
         wav = wav[nu_index]
         efreq = h*freq
         Jfreq = Jnu[:,:,:,nu_index]
         Jphot = Jnu[:,:,:,nu_index]/efreq
-        
+
         fnu0_1d = calc_input_spectrum(model,wav=wav)
         fnu0_1d_hires = calc_input_spectrum(model,wav=self.wav)
 
         f0_tot = np.trapz(fnu0_1d, x = freq)*-1.
         f0_tot_hires = np.trapz(fnu0_1d_hires, x = self.freq)*-1.
-        
+
         #minimum error estimate for flux integral by summation
         err_sum = f0_tot/f0_tot_hires - 1.
-        
+
         J_e = np.trapz(Jfreq, x=np.expand_dims(freq,(0,1,2)),axis=-1)*-1
         J_n = np.trapz(Jphot, x=np.expand_dims(freq,(0,1,2)),axis=-1)*-1
-        
+
         self.J[field] = {}
         self.J[field]['J_phot'] = J_n.squeeze()*(1.+ err_sum)
         self.J[field]['e_phot'] = (J_e/J_n).squeeze()
-   
+
         return True
 
     def model_PDR(self):
         """ calculates the PDR temperature grid for cross-matching to the gas temperatures
         stores results in dictionary T['pdr'] = {'n', 'G', 'Ts'}
-       
+
         'n': log of atomic hydrogen density
         'G': log of FUV field in units of G0
         'Ts': corresponding 2D array of PDF surface temperatures
-        
+
         """
         from scipy import interpolate
         model = self.m
-        
+
         tpdr = np.load(model.models_dir+'templates/tgas.npy')
         log_n = np.cumsum(np.ones(49)*0.125) + 0.75 + 0.125
         log_F = np.linspace(-3.29588079,-3.29588079+ 57*0.125, 57) - np.log10(G0) #first axis
         #T_heat = interpolate.interp2d(log_n,log_F,tgas)
-    
-        
+
+
         self.T['pdr'] = {'n':log_n, 'G':log_F, 'Ts': tpdr}
-        
+
         return True
-    
+
     def model_Tshock(self):
         """ calculates the shock temperatures from the infall model
         see: model_.streamline for more info
@@ -304,7 +304,7 @@ class out: #Class that handles and stores the outputs and data for radmc3d after
         Tshock = model.solve_envelope(prop='Tg')*model.stream_mask
         self.T['shock'] = Tshock.swapaxes(0,1)
         return
-    
+
     def calc_Tgas(self,ndim=3):
         """ calculates the gas temperature based on the UV radiation field
         (and models shock temperatures if shocks are included)
@@ -376,90 +376,90 @@ class out: #Class that handles and stores the outputs and data for radmc3d after
         #uncoupled = np.where(((Tgas_max/T_crit) >= 1.1))
         #threshold for CO dissociation, below this value molecular self-shielding may kick in
         uncoupled = np.where(nG0-nH > - 6)
-        
+
         T_gas[uncoupled] = Tgas_max[uncoupled]
 
         if ndim == 3:
             self.T['gas'] = T_gas
         else:
             self.T['gas']= np.repeat(np.expand_dims(T_gas,axis=-1),len(self.m.phi),axis=-1)
-        return 
+        return
 
-        
+
     def make_rz(self):
         """ generates 2d arrays of r-z coordinate grid (cylindrical)
-        Returns: X,Z 
+        Returns: X,Z
         """
         R,TH = np.meshgrid(self.r,self.theta)
         X = R*np.sin(TH)
         Z = R*np.cos(TH)
         return X,Z
-        
+
 
 def overwrite_model(output,outdir=None):
     """ writes new .inp files for the current model parameters
     !! Note: this option will overwrite current .inp files in the directory !!
-    
+
     Files that you've been using (but not generating through the model) will be lost
     (except for opacities)
-    
+
     Parameters:
     -----------
     output: object,  output class see outputs.py
-    
+
     outdir: optional, default None
             if not None, changes model.outdir and writes .inp files for thermal transfer in new directory
-            
+
     """
     model = output.m
     model.print_params()
-    
+
     if outdir is not None:
         model.outdir = outdir
-    
+
     write_grid(model)
     write_wavelength(model,wav=output.wav)
     write_star(model,wav=output.wav)
-    
+
     write_dust_density(model)
     write_gas_density(model)
-    
+
     if model.rad['viscous_heating'] != False:
         write_viscous_heatsource(model)
-        
+
     if model.rad['G0'] > 0:
         write_external_radfield(model,wav=output.wav)
-    
+
     if 'gas' in output.T.keys():
         write_gas_temperature(model,Tgas=output.T['gas'])
-        
-    return 
+
+    return
 
 
 def prep_thermal_transfer(output,nphot=500000,mrw=1,maxtau=5):
-    """ checks for files based on physics specified in the input files 
+    """ checks for files based on physics specified in the input files
         and generates the necessary files for a radmc3d mctherm run
-    Note: presence of some main input files in the directory means they won't be re-written 
+    Note: presence of some main input files in the directory means they won't be re-written
 
     Parameters
     -----------
     output: output class object to generate files for
 
     nphot: radmc3d parameter, number of photons for main mc calculation
-    
-    mrw: radmc3d parameter, turning modified random walk on/off 
+
+    mrw: radmc3d parameter, turning modified random walk on/off
 
     maxtau: radmc3d parameter, maximum scattering optical depth before absorption
     """
-    
+
     model = output.m
- 
-    
+
+
     fname = model.outdir+'wavelength_micron.inp'
     wav,freq = read_wavelength(fname)
     output.wav = wav
     output.freq = freq
-    
+
     if model.rad['xray'] == True:
         wav_xray = np.logspace(np.log10(xray_min),np.log10(xray_max), 20)
         wav_update = np.append(wav_xray,wav[wav>xray_max])
@@ -468,28 +468,28 @@ def prep_thermal_transfer(output,nphot=500000,mrw=1,maxtau=5):
         write_star(model,wav=wav_update)
         output.wav = wav_update
         output.freq = c / wav_update * 1e4
-    
+
     file_list = ['amr_grid.inp', 'dust_density.inp','stars.inp']
     func_list = [write_grid, write_dust_density, write_star]
-    
+
     for file, func in zip(file_list,func_list):
         if os.path.exists(model.outdir+ file) != True:
             func(model)
-       
+
     if os.path.exists('heatsource.inp') != True and model.rad['viscous_heating'] != False:
         write_viscous_heatsource(model)
-        
+
     if os.path.exists('dustopac.inp') != True:
         write_opacities(model,update=False)
-        
+
     if os.path.exists('external_source.inp') != True and model.rad['G0'] > 0:
         write_external_radfield(model,wav=wav)
-        
+
     write_main(model,scat=2,nphot=nphot,mrw=mrw,maxtau=maxtau)
 
 def do_thermal_transfer(output,nt=4,prep=False,**prepkw):
     """ starts thermal transfer from python script
-    
+
     Parameters
     -----------
     output: output class object to generate files for
@@ -497,7 +497,7 @@ def do_thermal_transfer(output,nt=4,prep=False,**prepkw):
     nt: int, number of threads to run on
 
     prep: boolean, if True prep_thermal_transfer will be run with **prepkw
-    
+
     """
     model = output.m
     if prep == True:
@@ -505,52 +505,52 @@ def do_thermal_transfer(output,nt=4,prep=False,**prepkw):
     if os.getcwd() != model.outdir:
         os.chdir(model.outdir)
     os.system('radmc3d mctherm setthreads {}'.format(nt))
-        
+
 def prep_he_transfer(output,nx=5,nu=5):
     """ generates the necessary files for a radmc3d mcmono run for high energy radiative transfer
     writes mcmono_wavelength_micron.inp
     updates xray opacities using tables from BB2011
-    
-    
+
+
     Parameters
     -----------
     output: output class object to generate files for
-    
+
     nx: number of xray wavelengths for transfer, no effect if model.rad['xray'] = False
-    
+
     nu: number of uv wavelengths for transfer
 
     """
     model = output.m
     if os.getcwd() != model.outdir:
         os.chdir(model.outdir)
-        
+
     x_lam = np.logspace(np.log10(xray_min),np.log10(xray_max),nx)
     u_lam = np.append(uv_min,np.linspace(lam_lya,uv_max,nu-1)) #includes Lya line
-    
+
     if model.rad['xray'] == True:
         he_lam = np.append(x_lam,u_lam)
         write_opacities(model,update=True)
     else:
         he_lam = u_lam
-        
+
     write_wavelength(model,wav=he_lam,fname=model.outdir+'mcmono_wavelength_micron.inp')
     write_gas_density(model)
     write_main(model, scat=2, mrw=1, maxtau=20)
-    
+
 def do_he_transfer(output,nphot=100000,nt=4,prep=False,**prepkw):
     """ starts high energy radiative transfer from python script
-    
+
     Parameters
     -----------
     output: output class object to generate files for
-    
+
     nphot: number of photons for mcmono calculation
 
     nt: int, number of threads to run on
 
     prep: boolean, if True prep_he_transfer will be run with prepkw
-    
+
     """
     model = output.m
     if prep == True:
@@ -558,22 +558,22 @@ def do_he_transfer(output,nphot=100000,nt=4,prep=False,**prepkw):
     if os.getcwd() != model.outdir:
         os.chdir(model.outdir)
     os.system('radmc3d mcmono nphot_mono {} setthreads {}'.format(nphot,nt))
-        
-        
+
+
 def prep_line_transfer(output,molecules={'names':['co'],'abundances':[1e-4],'lines':[2]},teq=0):
     """ generates the necessary files for radmc3d line transfer
     downloads linelist files
     writes molecular number density files based on abundances
     writes velocity and temperature files
-    
+
     Parameters
     -----------
     output: output class object to generate files for
-    
+
     molecules: dict, entries of 'names', 'abundances, 'lines' for every molecule being computed
-    
+
     teq: 0 or 1, if 0, temperature of gas != temperature of dust
-    
+
     """
     model = output.m
     get_molecule_info(model,names=molecules['names'])
@@ -585,7 +585,7 @@ def prep_line_transfer(output,molecules={'names':['co'],'abundances':[1e-4],'lin
             output.calc_Tgas(ndim=3)
         write_gas_temperature(model,output.T['gas'])
     write_main(model, scat=1, mrw=1, maxtau=20,dust=0, lines=1, teq=teq)
-    
+
 def read_wavelength(fname=None):
     """Reads the wavelength grid
 
@@ -596,14 +596,14 @@ def read_wavelength(fname=None):
     """
     if fname is None:
         fname = 'wavelength_micron.inp'
-        
+
     if os.path.exists(fname) != True:
         print('no wavelength file found at path:', fname, 'reading from template')
         templates_dir = model.models_dir+'templates/'
         fname = templates_dir +'wavelength_micron.inp'
-    
+
     print('Reading ' + fname)
-    
+
     data = np.fromfile(fname, count=-1, sep=" ", dtype=np.float64)
     wav = data[1:]
     freq = c / wav * 1e4

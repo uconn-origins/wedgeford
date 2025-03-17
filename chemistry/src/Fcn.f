@@ -45,7 +45,7 @@ C TEST Variables - Max Rates
 	  DO j=1,Nratetest
 		NRTreacs(j) = 0
 		CALL ispecies(RTspec(j), ns, s, itest(j))
-	  ENDDO
+	  END DO
 	  
 C Initialization of the array:
 	  ydot = 0.0D0
@@ -83,7 +83,7 @@ C TEST - Max Rates
 				RTreacs(j,NRTreacs(j)) = i
 				RTrates(j,NRTreacs(j)) = -term
 			ENDIF
-		  ENDDO
+		  END DO
 	  END IF
 
 C Formation of species:      
@@ -104,7 +104,7 @@ C TEST - Max Rates
 				RTreacs(j,NRTreacs(j)) = i
 				RTrates(j,NRTreacs(j)) = term
 			ENDIF
-		  ENDDO
+		  END DO
 	  END IF
 
       END DO
