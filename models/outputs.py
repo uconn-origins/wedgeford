@@ -711,7 +711,7 @@ def prep_line_transfer(output,molecules={'names':['co'],'abundances':[1e-4],'lin
     model = output.m
     get_molecule_info(model,names=molecules['names'])
     write_molecule_density(model, names=molecules['names'],abundances = molecules['abundances'])
-    write_lines(model)
+    write_lines(model,names=molecules['names'])
     write_velocities(model)
     if teq == 0:
         if 'gas' not in output.T.keys():
