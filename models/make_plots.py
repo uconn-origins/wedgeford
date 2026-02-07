@@ -488,3 +488,25 @@ def save_heRT(output):
         f = gcf()
         f.savefig(pp,format='pdf')
         
+def plot_nT_hist_slice(output, nslice, Tslice):
+    X,Z = output.make_rz()
+    nvals_slice = np.array(nslice)[0,:,:]
+    Tvals_slice = np.array(Tslice)[0,:,:]
+    f,axb = subplots(1,2,constrained_layout=True,sharex=True, sharey=True,dpi=80)
+    ax = axb[0]
+    sca(ax)
+    
+    c = ax.contourf(X, Z, nvals_slice.T,levels=np.linspace(2,12,10),cmap='inferno',extend='neither') #previous value rho2D, extend = 'both'
+    levels = np.linspace(nvals_Macc_ClassI_low_1[0],nvals_Macc_ClassI_low_1[1],2)
+    ax.set_xlabel('r [au]')
+    ax.set_ylabel('z [au]')
+    cb = colorbar(c,ax=ax,location='bottom',aspect=10,ticks=np.array(c.levels[::2]).astype(int))
+    cb.set_label(r'$n$ [$\mathrm{cm^{-3}}$]')
+    
+    ax = axb[1]
+    sca(ax)
+    levels= np.linspace(Tvals_Macc_ClassI_low_1[0],Tvals_Macc_ClassI_low_1[1],10)
+    c2 = ax.contourf(X, Z, Tvals_slice.T,levels=levels,cmap='plasma',extend='neither')
+    cb = colorbar(c2,ax=ax,location='bottom',aspect=10,ticks=np.array(c2.levels[::2]).astype(int))
+    ax.set_xlabel('r (au)')
+    plt.show()
