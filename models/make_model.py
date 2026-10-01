@@ -1,3 +1,4 @@
+from math import pi
 from pylab import *
 #import radmc3dPy as rpy
 import numpy as np
@@ -46,7 +47,7 @@ class model_:
         stellar_params = {'Ms': 1, 'Rs': 2.0, 'Ts': 4000, 'accrate':1e-7,'f':0.01,'xmodel':None}
         disk_params = {'Mdisk': 0.06, 'Mfrac': [0.01,0.01],'R0':[5,5], 'H0':[1,0.3], 'p':[-1,-1], 'Rdisk':[125,125],
                       'Tfac':1, 'q':0.5, 'hydro':[None,None,None]}
-        envelope_params = {'Min': 1e-6, 'Rc':125, 'rho_amb':2e-25, 'rho_0': 6e-22,'theta_min': 25,'exf':0.25,'Rmax':1.5e4, 'd2g': 0.01, 'shock':False, 'nstreams': 1, 'stream_frac':1}
+        envelope_params = {'Min': 1e-6, 'Rc':125, 'rho_amb':2e-25, 'rho_0': 6e-22,'theta_min': 25,'exf':0.25,'Rmax':1.5e4, 'd2g': 0.01, 'shock':False, 'nstreams': 1, 'stream_frac':1,'theta_max':90}
         grid_params = {'N':[180,90,48], 'min':[0.1,pi/16.,0], 'max':[400,pi/2.,2*pi], 'spacing':['log','lin','lin']}
         dust_params = {'rho_si':3.1518, 'amin_chem':0.06, 'amax_ism': 1.0, 'amin': [0.005,0.005], 'amax': [1,1e3], 'apow': [3.5,3.5]}
         RT_params = {'cr_model': 'ssx','zetacr': 1.3e-17, 'G0':1, 'viscous_heating':True, 'fLya': 1e-4, 'xray':True}
@@ -331,7 +332,7 @@ class model_:
         Min = self.env['Min']
         rho0 = self.env['rho_0']
         Rin = Rc*np.sin(thstart)**2 #inner landing radius of the stream
-        Mfac = np.sqrt(1. - sqrt(Rin/Rc)) #adjusts the total mass to fit within the chosen streams
+        Mfac = np.sqrt(1. - np.sqrt(Rin/Rc)) #adjusts the total mass to fit within the chosen streams
         streamline = {}
 
         vwr=0.
@@ -478,7 +479,8 @@ class model_:
                 #PROP[key] = np.repeat(PROP[key],4,axis=-1)
                 PROP[key] = np.repeat(np.expand_dims(PROP[key],axis=-1),len(self.phi),axis=-1)
         return PROP
-    
+
+
     def isolate_stream(self, dphi_frac = 0.3, nstream = 1):
         """ generates a 3d mask to apply for non-axisymmetric envelope models 
         Parameters:
@@ -489,31 +491,87 @@ class model_:
         """
         shock = False
         np0 = len(self.phi)
-        npstream = int(dphi_frac*np0)/nstream #how many phi0 per stream
-        stream_phi = np.array([(np.arange(0,npstream,1) + i*np0/nstream).astype(int) for i in range(nstream)]).flatten()
-        
+        npstream = max(int(dphi_frac*np0/nstream),1) #how many phi0 per stream
+        stream_phi = np.array([(np.arange(0,npstream,1) + i*np0/nstream).astype(int) for i in range(nstream)]).flatten() #indices for phi coordinates that start with stream
+
         r_s = np.array([])
         th_s = np.array([])
         phi_s = np.array([])
         stream_s = np.array([])
         thstart = np.radians(self.env['theta_min'])
-        acosj = np.arccos(np.linspace(np.cos(thstart), 1e-6, 180))
-        
-        dphi = np.gradient(self.coords[2])[0]
-        subset_phi = self.phi[stream_phi]
+        acosj = np.arccos(np.linspace(0.999, 1e-3, 180))
+        acosj = np.linspace(0,pi/2,180)
+        acosj = self.theta
+        dphi = np.diff(self.coords[2])[0]
         index_phi = stream_phi
 
+        for j in acosj: #solve for streamline solution in a single quadrant
+            if j > thstart and j < np.radians(self.env['theta_max']):
+                streamline = self.stream(th0=j,p0=0,shock=shock)
+                r_ = streamline['path'][0]
+                th_ = streamline['path'][1]
+                phi_ = streamline['path'][2]
+                f_stream1 = interpolate.interp1d(r_,th_,fill_value = "extrapolate")
+                f_stream2 = interpolate.interp1d(r_,phi_,fill_value = "extrapolate")
+                r_g = self.r
+                th_g = f_stream1(r_g)
+                phi_g = f_stream2(r_g)
+                r_s = np.append(r_s,r_g)
+                th_s = np.append(th_s,th_g)
+                phi_s = np.append(phi_s,phi_g)
+    
+        i_th =  np.clip(np.digitize(th_s,self.theta,right=True),a_min=0,a_max=len(self.theta)-1)
+        print(i_th)
+        i_phi = np.clip(np.digitize(phi_s,self.phi),a_min=0,a_max=len(self.phi)-1)
+        i_r = np.clip(np.digitize(r_s, self.r),a_min = 0, a_max = len(self.r)-1)
+        R,THETA,PHI = self.make_grid()
+        stream_mask = np.zeros_like(R)
+        for ip in range(1,np0):
+            if ip in index_phi:
+                stream_mask[i_th,i_r,np.mod(i_phi+ip,len(self.phi))] = 1    
+        self.stream_mask = stream_mask[:,:,:]
 
-        for j in acosj:
+    def isolate_stream_old(self, dphi_frac = 0.3, nstream = 1):
+        """ generates a 3d mask to apply for non-axisymmetric envelope models 
+        Parameters:
+        ----------
+        dphi_frac: float, fraction of angle coverage that streams will occupy
+        
+        nstream: int, number of individual streams to apply to cover dphi_frac
+        """
+        shock = False
+        np0 = len(self.phi)
+        npstream = max(int(dphi_frac*np0/nstream),1) #how many phi0 per stream
+        stream_phi = np.array([(np.arange(0,npstream,1) + i*np0/nstream).astype(int) for i in range(nstream)]).flatten() #indices for phi coordinates that start with stream
+
+        r_s = np.array([])
+        th_s = np.array([])
+        phi_s = np.array([])
+        stream_s = np.array([])
+        thstart = np.radians(self.env['theta_min'])
+        acosj = np.arccos(np.linspace(0.999, 1e-3, 180))
+        acosj = np.linspace(0,pi/2,180)
+        dphi = np.diff(self.coords[2])[0]
+        index_phi = stream_phi
+
+        for j in acosj: #solve for streamline solution in a single quadrant
             streamline = self.stream(th0=j,p0=0,shock=shock)
             r_s = np.append(r_s,streamline['path'][0])
             th_s = np.append(th_s,streamline['path'][1])
             phi_s = np.append(phi_s,streamline['path'][2])
-            stream_s = np.append(stream_s,np.ones_like(streamline['path'][0]))
+            if j < thstart:
+                stream_s = np.append(stream_s,np.zeros_like(streamline['path'][0]))
+            else:
+                stream_s = np.append(stream_s,np.ones_like(streamline['path'][0]))
 
+        th_s =  self.theta(np.digitize(th_s[r_s<np.amax(self.r)],self.coords[1]))
+        stream_s = stream_s[r_s<np.amax(self.r)]
+        phi_s = self.phi(np.digitize(phi_s[r_s<np.amax(self.r)],self.coords[2]))
+        r_s = self.r[np.digitize(r_s[r_s<np.amax(self.r)],self.coords[0])]
+        
         for ip in range(1,np0):
             if ip in index_phi:
-                stream_ = np.ones_like(r_s)
+                stream_ = np.ones_like(r_s) # assign whether those streamline solutions are valid
             else:
                 stream_ = np.zeros_like(r_s)
             stream_s = np.append(stream_s,stream_)
@@ -522,25 +580,20 @@ class model_:
         th_s = np.repeat(th_s,np0,axis=-1).flatten()
         phi_s = np.mod(np.array([phi_s + dphi for dphi in self.phi]).flatten(),2*pi)
         
-        zcyl_s = r_s*np.cos(th_s)
-        rcyl_s = r_s*np.sin(th_s)
-
-        R_CYL,Z_CYL = self.make_rz()
-        stream_mask = np.zeros_like(R_CYL[:,:,0])
-        R = R_CYL[:,:,0]
-        Z = Z_CYL[:,:,0]
+        R,THETA,PHI = self.make_grid()
+        stream_mask = np.zeros_like(R[:,:,0])
         for iphi in self.phi:
-            rcyl = rcyl_s[np.where(np.abs(phi_s-iphi)<=dphi/2.)]
-            zcyl = zcyl_s[np.where(np.abs(phi_s-iphi)<=dphi/2.)]
+            r_ = r_s[np.where(np.abs(phi_s-iphi)<=dphi/2.)]
+            th_ = th_s[np.where(np.abs(phi_s-iphi)<=dphi/2.)]
             stream_val = stream_s[np.where(np.abs(phi_s-iphi)<=dphi/2.)]
-            if len(rcyl) > 0:
-                mask = np.clip(interpolate.griddata((rcyl,zcyl),stream_val,(R,Z),method='nearest',fill_value=0,rescale=True),a_min = 0.0, a_max=None)
+            if len(r_) > 0:
+                mask = np.clip(interpolate.griddata((r_,th_),stream_val,(R[:,:,0],THETA[:,:,0]),method='nearest',fill_value=0,rescale=True),a_min = 0.0, a_max=1)
             else:
                 mask = np.zeros_like(R)
             stream_mask = np.dstack([stream_mask,mask])
         self.stream_mask = stream_mask[:,:,1:]
-
-        
+    
+  
     def rho_env(self,fluid=0):
         rho0 = self.env['rho_0']
         rho_vol = self.solve_envelope(prop='rho')
